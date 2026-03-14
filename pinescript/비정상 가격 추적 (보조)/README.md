@@ -1,136 +1,161 @@
-# cRSI + MFI Gap Highlight
+# cRSI + MFI Gap Highlight + Final Trap
 
 트레이딩뷰에서 사용할 수 있는 Pine Script 지표 설명서입니다.
 
 대상 스크립트:
-- [`main.pine`](/Users/kjh/Workspace/KJH-Trading/pinescript/RSI%20MFI%20Tracker/main.pine)
+- [`main.pine`](./main.pine)
 
 ## 개요
 
-이 지표는 하나의 보조지표 패널 안에 아래 기능을 함께 제공합니다.
+이 지표는 별도 패널에서 아래 내용을 한 번에 보도록 만든 보조지표입니다.
 
-- cRSI와 MFI를 동시에 표시
-- 최근 cRSI 분포를 기준으로 한 동적 밴드 표시
-- cRSI와 MFI 간 괴리가 커질 때 배경색 강조
-- 배경색 신호를 MACD와 함께 해석할 수 있는 구조 제공
+- cRSI와 MFI 동시 표시
+- 최근 cRSI 분포 기반 동적 밴드
+- cRSI-MFI 괴리 배경 강조
+- Bull Trap / Bear Trap 라벨 표시
+- 강도별 알람 조건 제공
 
-차트 아래 보조지표 영역에서 가격 모멘텀과 자금 흐름의 차이를 빠르게 확인하고, MACD와 함께 반등 또는 조정 후보 구간을 해석하려는 목적에 맞춰 구성된 스크립트입니다.
+핵심은 단순 오실레이터 2개를 같이 보여주는 데서 끝나지 않고, `괴리 발생 -> 가격/거래량/괴리 조건 점수화 -> 최종 Trap 라벨` 순서로 후보 구간을 압축해서 보여준다는 점입니다.
 
 ## 트레이딩뷰 적용 방법
 
 1. 트레이딩뷰에서 `Pine Editor`를 엽니다.
-2. [`main.pine`](./main.pine) 파일의 전체 내용을 복사합니다.
+2. [`main.pine`](./main.pine) 파일 전체를 복사합니다.
 3. Pine Editor에 붙여넣습니다.
-4. `Add to chart` 또는 `차트에 추가`를 클릭합니다.
-5. 필요하면 `Save`로 개인 스크립트로 저장합니다.
+4. `차트에 추가`를 누릅니다.
+5. 필요하면 저장합니다.
 
 ## 예시 화면
 
 ![지표 예시 화면](./img.png)
 
-위 예시 화면에서는 아래 요소를 한 번에 확인할 수 있습니다.
+위 화면에서 주로 보는 것은 아래 요소입니다.
 
 - 노란색 선: `cRSI`
 - 파란색 선: `MFI`
-- 회색 밴드: 최근 cRSI 분포를 기준으로 만든 동적 밴드
-- 빨간 점선: 과매수 기준선 `80`
-- 회색 점선: 중립선 `50`
-- 초록 점선: 과매도 기준선 `20`
+- 회색 밴드: 최근 cRSI 분포 기반 동적 상단/하단 밴드
 - 노란색 계열 배경: `cRSI > MFI` 괴리 구간
 - 파란색 계열 배경: `MFI > cRSI` 괴리 구간
-- 하단 MACD: 배경색 신호를 추가 확인하는 참고 지표
+- `Bull(1~3)` / `Bear(1~3)` 라벨: 조건 점수에 따라 필터된 최종 Trap 신호
 
-즉, 한 화면에서 cRSI와 MFI의 상대 강도, 과열/침체 위치, 괴리 발생 구간, 그리고 MACD 확인 신호를 함께 볼 수 있습니다.
+쉽게 해석하면:
+
+- `배경색`은 cRSI와 MFI의 괴리 방향
+- `라벨`은 그 괴리 구간 안에서 추가 조건까지 통과한 최종 후보
+- `숫자`는 신호 강도
 
 ## 기본 정보
 
 - Pine Script 버전: `@version=6`
 - 표시 위치: `overlay=false`
-- 지표명: `cRSI + MFI Gap Highlight`
+- 지표명: `cRSI + MFI Gap Highlight + Final Trap`
+- short title: `cRSI+MFI Final Trap`
 
 ## 주요 기능
 
 ### 1. cRSI 계산
 
-- `Source`: RSI 계산 기준 가격
-- `cRSI Dominant Cycle`: 순환 길이 추정값
-- `cRSI Vibration`: cRSI 반응 속도
-- `cRSI Leveling %`: 동적 밴드 계산용 퍼센타일 비율
+- `Source`
+- `cRSI Dominant Cycle`
+- `cRSI Vibration`
+- `cRSI Leveling %`
 
-cRSI는 일반 RSI보다 가격 반응 속도를 더 빠르게 반영하도록 구성되어 있으며, 가격 모멘텀의 선행 움직임을 보기 위한 용도로 사용합니다.
+cRSI는 일반 RSI보다 반응이 빠르게 설정되어 있고, 최근 분포를 기준으로 상단/하단 동적 밴드가 같이 계산됩니다.
+
+이 밴드는 고정 `80/20`선과 별개로, 현재 종목과 타임프레임에서 cRSI가 상대적으로 어디쯤 위치하는지 보는 보조 기준입니다.
 
 ### 2. MFI 계산
 
-- `MFI Length`: 자금 흐름 계산 길이
+- `MFI Length`
 
-MFI는 거래량이 반영된 오실레이터로, 단순 가격 반응이 아니라 실제 자금 유입/유출 강도를 확인하는 데 사용합니다.
+MFI는 거래량이 반영된 오실레이터이기 때문에, 가격 반응 중심의 cRSI와 자금 흐름 중심의 MFI를 같이 비교할 수 있습니다.
 
-### 3. cRSI 동적 밴드
+### 3. cRSI-MFI 괴리 배경 강조
 
-- 최근 `cyclicmemory` 구간의 cRSI 값을 기준으로 상단 밴드와 하단 밴드를 계산합니다.
-- 밴드는 고정 80/20선과 별도로, 현재 종목과 타임프레임의 상대적인 cRSI 분포를 보여줍니다.
+- `Show Gap Background`
+- `Gap Background Threshold`
+- `Gap Color (cRSI > MFI)`
+- `Gap Color (MFI > cRSI)`
+- `Gap Background Transparency`
 
-최근 코드 개선 사항:
+조건은 단순합니다.
 
-- 초기 바에서 `na` 값을 `0`으로 치환하던 부분을 제거했습니다.
-- 동적 밴드 계산 시 실제 유효한 `cRSI` 표본 수만 사용하도록 수정했습니다.
-- 유효 데이터가 부족한 초반 구간에서는 밴드가 왜곡되지 않도록 `na` 기반으로 처리했습니다.
+- `cRSI > MFI` 이고 차이가 임계값 이상이면 Bull 쪽 괴리 배경
+- `MFI > cRSI` 이고 차이가 임계값 이상이면 Bear 쪽 괴리 배경
 
-### 4. cRSI-MFI 괴리 배경 강조
+즉, 가격 모멘텀이 자금 흐름보다 앞서는지, 반대로 자금 흐름이 더 강한지를 배경색으로 바로 확인할 수 있습니다.
 
-- `cRSI-MFI Gap Threshold`: 배경색을 켜는 최소 괴리값
-- `Show Gap Background`: 배경색 표시 여부
-- `Gap Color (cRSI > MFI)`: cRSI가 더 높을 때 표시할 배경색
-- `Gap Color (MFI > cRSI)`: MFI가 더 높을 때 표시할 배경색
-- `Gap Background Transparency`: 배경 투명도
+### 4. Final Trap 점수 계산
 
-조건이 충족되면:
+이 지표의 핵심 로직입니다. 배경색만으로 끝내지 않고, 아래 조건을 점수화해서 Trap 강도를 계산합니다.
 
-- `cRSI > MFI`일 때는 노란색 계열 배경으로 가격 모멘텀이 자금 흐름보다 앞서는 상태를 강조합니다.
-- `MFI > cRSI`일 때는 파란색 계열 배경으로 자금 흐름이 가격 모멘텀보다 강한 상태를 강조합니다.
+- 최근 가격 방향 확인
+- 평균 대비 거래량 통과 여부
+- 약한 괴리 / 강한 괴리 여부
+- cRSI 구간 진입 여부
+- 괴리 축소 여부
 
-또한 `cRSI` 또는 `MFI`가 아직 준비되지 않은 상태에서는 배경색이 켜지지 않도록 보정되어 있습니다.
+관련 설정:
 
-## MACD와 같이 보는 방법
+- `Weak Gap Threshold`
+- `Strong Gap Threshold`
+- `Bull Trap cRSI Zone`
+- `Bear Trap cRSI Zone`
+- `Volume Average Length`
+- `Volume Multiplier`
+- `Use Gap Fade Condition`
+- `Gap Fade Lookback`
 
-이 지표는 배경색만 단독으로 보기보다, 아래 MACD와 같이 볼 때 해석이 더 쉬워집니다.
+점수 해석은 아래와 같습니다.
 
-참고 MACD:
-- [CM MACD Custom Indicator - Multiple Time Frame - V2](https://kr.tradingview.com/script/XFr7xHqZ-CM-MACD-Custom-Indicator-Multiple-Time-Frame-V2/)
+- 3점: 약한 신호
+- 4점: 중간 신호
+- 5점 이상: 강한 신호
 
-### 1. 저점에서 반등 찾기
+최종 라벨은 `Bull(1~3)` 또는 `Bear(1~3)` 형태로 표시됩니다.
 
-- `MFI > cRSI` 배경이 나오고 상단 지표가 `20` 근처면 먼저 반등 후보로 봅니다.
-- 이때 MACD 막대 음수가 점점 짧아지거나 MACD선이 위로 꺾이면 반등 가능성이 커집니다.
-- 한마디로 `저점 배경색 + MACD 바닥 확인 = 롱 후보`로 해석하면 됩니다.
+### 5. 중복 신호 제한
 
-### 2. 고점에서 조정 찾기
+같은 배경 구간에서 라벨이 계속 찍히지 않도록, Bull 배경 구간과 Bear 배경 구간마다 신호를 1회만 표시합니다.
 
-- `cRSI > MFI` 배경이 나오고 상단 지표가 `80` 근처면 과열 후보로 봅니다.
-- 이때 MACD 막대 양수가 줄어들거나 MACD선이 아래로 꺾이면 힘이 빠지는 구간일 수 있습니다.
-- 한마디로 `고점 배경색 + MACD 둔화 = 익절 또는 숏 후보`로 해석하면 됩니다.
+즉:
 
-### 3. 중립 구간은 약하게 보기
+- 새로운 Bull 괴리 배경이 시작되면 Bull 신호 가능 상태 초기화
+- 새로운 Bear 괴리 배경이 시작되면 Bear 신호 가능 상태 초기화
+- 같은 배경 구간 안에서는 첫 최종 신호만 표시
 
-- 상단 지표가 `40~60` 근처인데 배경색만 잠깐 나오면 강한 신호로 보지 않습니다.
-- MACD도 같이 애매하면 관망하는 편이 낫습니다.
-- 한마디로 `중립 구간 배경색 단독 신호는 약함`으로 보면 됩니다.
+이 구조 덕분에 라벨이 과하게 반복되는 문제를 줄였습니다.
 
 ## 추천 사용 흐름
 
-1. 먼저 상단 패널에서 배경색이 나온 위치를 봅니다.
-2. 그 위치가 과매수권인지 과매도권인지 확인합니다.
-3. `cRSI > MFI`인지 `MFI > cRSI`인지로 선행 주체가 가격인지 자금인지 판단합니다.
-4. 하단 MACD 히스토그램이 확대 중인지 축소 중인지 확인합니다.
-5. 마지막으로 MACD 라인과 시그널 라인의 방향 전환 여부로 실행 타이밍을 잡습니다.
+1. 먼저 배경색이 Bull 쪽인지 Bear 쪽인지 확인합니다.
+2. 현재 cRSI가 `80/20` 근처인지, 동적 밴드 상단/하단 부근인지 봅니다.
+3. 그다음 `Bull(1~3)` 또는 `Bear(1~3)` 라벨이 붙는지 확인합니다.
+4. 강도 숫자가 높을수록 우선순위를 높게 봅니다.
+5. 실제 진입 판단은 가격 구조, 거래량, 상위 타임프레임 방향과 함께 확인합니다.
 
-요약하면:
+간단히 해석하면:
 
-- `저점권 + MFI > cRSI 배경 + MACD 하락 둔화` = 반등 준비 가능성
-- `고점권 + cRSI > MFI 배경 + MACD 상승 둔화` = 조정 또는 익절 가능성
-- `중립권 배경색` 단독 신호 = 우선순위 낮음
+- `MFI > cRSI 괴리 + Bear 라벨` = 눌림 이후 반등 후보 관찰
+- `cRSI > MFI 괴리 + Bull 라벨` = 과열 이후 조정 후보 관찰
+- `배경색만 있고 라벨 없음` = 조건이 덜 모인 상태
 
-이 지표는 확정 진입 신호보다는 후보 구간 탐색 용도로 보는 편이 더 적절합니다.
+## 알람 설정 방법
+
+이 스크립트에는 `alertcondition(...)`이 포함되어 있어서 트레이딩뷰 알람으로 바로 사용할 수 있습니다.
+
+### 제공되는 알람 종류
+
+- `Bull Trap`
+- `Bear Trap`
+- `Bull Trap (3)`
+- `Bull Trap (2)`
+- `Bull Trap (1)`
+- `Bear Trap (3)`
+- `Bear Trap (2)`
+- `Bear Trap (1)`
+
+강한 신호만 받고 싶으면 `(3)` 위주로 쓰고, 초기 후보까지 넓게 보려면 기본 알람이나 `(1)`, `(2)`를 함께 쓰면 됩니다.
 
 ## 입력값 요약
 
@@ -145,23 +170,40 @@ MFI는 거래량이 반영된 오실레이터로, 단순 가격 반응이 아니
 
 - `MFI Length`
 
+### 선 표시 관련
+
+- `cRSI Color`
+- `MFI Color`
+- `cRSI Line Width`
+- `MFI Line Width`
+
 ### 괴리 배경 관련
 
-- `cRSI-MFI Gap Threshold`
 - `Show Gap Background`
+- `Gap Background Threshold`
 - `Gap Color (cRSI > MFI)`
 - `Gap Color (MFI > cRSI)`
 - `Gap Background Transparency`
 
+### Trap 관련
+
+- `Show Trap Labels`
+- `Weak Gap Threshold`
+- `Strong Gap Threshold`
+- `Bull Trap cRSI Zone`
+- `Bear Trap cRSI Zone`
+- `Volume Average Length`
+- `Volume Multiplier`
+- `Use Gap Fade Condition`
+- `Gap Fade Lookback`
+- `Trap Label Transparency`
+- `Bull Label Offset`
+- `Bear Label Offset`
+
 ## 주의사항
 
-- 자동 매매 전략이 아니라 시각화 중심의 보조지표입니다.
-- 강한 추세장에서는 과매수/과매도와 괴리 신호가 오래 유지될 수 있습니다.
-- `gapThreshold`를 너무 낮추면 배경색이 과도하게 많아져 해석력이 떨어질 수 있습니다.
-- 가격 구조, 지지/저항, 거래량, 상위 타임프레임 방향과 함께 보는 것이 좋습니다.
-
-## 참고 자료
-
-- RSI/MFI 괴리 인디케이터: [`main.pine`](/Users/kjh/Workspace/KJH-Trading/pinescript/RSI%20MFI%20Tracker/main.pine)
-- 예시 이미지: `img.png`
-- MACD 참고 스크립트: [CM MACD Custom Indicator - Multiple Time Frame - V2](https://kr.tradingview.com/script/XFr7xHqZ-CM-MACD-Custom-Indicator-Multiple-Time-Frame-V2/)
+- 자동 매매 전략이 아니라 보조 해석용 지표입니다.
+- `Bull Trap`과 `Bear Trap`이라는 이름은 코드상 라벨명이며, 단독 확정 신호로 보기보다 후보 압축 신호로 해석하는 편이 맞습니다.
+- `Gap Background Threshold`, `Weak/Strong Gap Threshold`를 너무 낮추면 라벨이 과도하게 많아질 수 있습니다.
+- 거래량이 적거나 횡보가 긴 종목에서는 괴리와 Trap 신호가 자주 흔들릴 수 있습니다.
+- 가격 구조, 추세, 지지/저항, 상위 타임프레임 방향과 반드시 같이 봐야 합니다.
