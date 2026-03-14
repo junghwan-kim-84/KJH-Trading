@@ -1,5 +1,5 @@
 //@version=6
-indicator("MA + cRSI + Vol/Div + ATR Zone", overlay=true, format=format.volume, precision=0)
+indicator("MA + cRSI + Vol/Div + ATR Zone (Simple Alerts)", overlay=true, format=format.volume, precision=0)
 
 // =========================
 // MA Inputs
@@ -18,14 +18,14 @@ vibration = input.int(10, minval=1, title="cRSI Vibration")
 leveling = input.float(10.0, minval=1.0, maxval=50.0, title="cRSI Leveling (%)")
 absoluteOB = input.float(70.0, title="절대 과매수 값")
 absoluteOS = input.float(30.0, title="절대 과매도 값")
-paintBars = input.bool(true, title="조건 충족 시 캔들 색상 변경")
-overboughtColor = input.color(color.red, title="과매수 색상")
-oversoldColor = input.color(color.aqua, title="과매도 색상")
+paintBars = input.bool(true, title="과매수/과매도 시 캔들 색상 변경")
+overboughtColor = input.color(color.red, title="과매수 캔들 색상")
+oversoldColor = input.color(color.aqua, title="과매도 캔들 색상")
 showCRSIPlots = input.bool(false, title="cRSI / 밴드 플롯 표시")
 enableRepeatingOBOSAlert = input.bool(true, title="과매수/과매도 반복 알림 사용")
 
 // =========================
-// Buy/Sell Abnormal Volume Inputs
+// Volume Inputs
 // =========================
 enableSmartVolume = input.bool(true, title="스마트 비정상 거래량 사용")
 abnormalVolLookback = input.int(5, minval=1, title="매수/매도 거래량 평균 기준 봉 수")
@@ -51,17 +51,28 @@ showRegularBearDiv = input.bool(true, title="일반 약세 다이버전스")
 showHiddenBearDiv = input.bool(false, title="히든 약세 다이버전스")
 
 // =========================
-// ATR Setup Zone Inputs
+// Background Zone Inputs
 // =========================
-showSetupZone = input.bool(true, title="다이버전스 이후 배경 구간 표시")
-setupLookbackBars = input.int(36, minval=1, title="다이버전스 이후 추적 봉 수")
+showBgZone = input.bool(true, title="배경 구간 표시")
+useDivForBg = input.bool(true, title="다이버전스 기준 배경 사용")
+useCandleForBg = input.bool(true, title="과매수/과매도 캔들 기준 배경 사용")
+setupLookbackBars = input.int(36, minval=1, title="기준 신호 이후 추적 봉 수")
 atrLength = input.int(14, minval=1, title="ATR 기간")
 atrMultiplier = input.float(0.8, minval=0.1, step=0.1, title="ATR 과도 이동 배수")
 rsiMoveLimit = input.float(15.0, minval=0.1, step=0.1, title="RSI 추가 이동 제한값")
-useCRSISetupFilter = input.bool(true, title="배경 구간에 cRSI 필터 적용")
-useVolumeSetupFilter = input.bool(false, title="배경 구간에 거래량 필터 적용")
-setupBullBgColor = input.color(color.new(color.aqua, 75), title="강세 배경 색상")
-setupBearBgColor = input.color(color.new(color.red, 75), title="약세 배경 색상")
+useCRSIFilterForBg = input.bool(true, title="배경 구간에 cRSI 필터 적용")
+useVolumeFilterForBg = input.bool(false, title="배경 구간에 거래량 필터 적용")
+
+bullBgBaseColor = input.color(color.aqua, title="강세 배경 기본 색상")
+bearBgBaseColor = input.color(color.red, title="약세 배경 기본 색상")
+
+bullBgWeakTransparency = input.int(84, minval=0, maxval=100, title="강세 약한 신호 배경 투명도")
+bullBgMidTransparency = input.int(72, minval=0, maxval=100, title="강세 중간 신호 배경 투명도")
+bullBgStrongTransparency = input.int(58, minval=0, maxval=100, title="강세 강한 신호 배경 투명도")
+
+bearBgWeakTransparency = input.int(84, minval=0, maxval=100, title="약세 약한 신호 배경 투명도")
+bearBgMidTransparency = input.int(72, minval=0, maxval=100, title="약세 중간 신호 배경 투명도")
+bearBgStrongTransparency = input.int(58, minval=0, maxval=100, title="약세 강한 신호 배경 투명도")
 
 // =========================
 // Moving Average
@@ -126,10 +137,10 @@ for steps = 0 to 100
 // =========================
 // Confirmed OB / OS
 // =========================
-isConfirmedOverbought = crsi >= absoluteOB
-isConfirmedOversold = crsi <= absoluteOS
+isOverbought = crsi >= absoluteOB
+isOversold = crsi <= absoluteOS
 
-barCol = isConfirmedOverbought ? overboughtColor : isConfirmedOversold ? oversoldColor : na
+barCol = isOverbought ? overboughtColor : isOversold ? oversoldColor : na
 barcolor(paintBars ? barCol : na)
 
 // =========================
@@ -146,7 +157,7 @@ abnormalBuyVolume = buyVolume > avgBuyVolume * (1 + abnormalVolMultiplier)
 abnormalSellVolume = sellVolume > avgSellVolume * (1 + abnormalVolMultiplier)
 
 // =========================
-// Optional Smart Volume Conditions
+// Smart Volume Conditions
 // =========================
 upperWick = high - math.max(open, close)
 lowerWick = math.min(open, close) - low
@@ -158,8 +169,8 @@ isBearPressureBar = close < open or upperWick > bodySize
 maBullFilter = not useMAFilterForVolume or close >= ma
 maBearFilter = not useMAFilterForVolume or high >= ma
 
-crsiBullFilter = not useCRSIFilterForVolume or isConfirmedOversold
-crsiBearFilter = not useCRSIFilterForVolume or isConfirmedOverbought
+crsiBullFilter = not useCRSIFilterForVolume or isOversold
+crsiBearFilter = not useCRSIFilterForVolume or isOverbought
 
 bullSmartVolumeSignal = enableSmartVolume and abnormalBuyVolume and isBullPressureBar and maBullFilter and crsiBullFilter
 bearSmartVolumeSignal = enableSmartVolume and abnormalSellVolume and isBearPressureBar and maBearFilter and crsiBearFilter
@@ -189,117 +200,163 @@ priceHL = low[lbR] > ta.valuewhen(plFound, low[lbR], 1)
 priceHH = high[lbR] > ta.valuewhen(phFound, high[lbR], 1)
 priceLH = high[lbR] < ta.valuewhen(phFound, high[lbR], 1)
 
+bullDiv = showRSIDivergence and ((showRegularBullDiv and plFound and priceLL and oscHL) or (showHiddenBullDiv and plFound and priceHL and oscLL))
+bearDiv = showRSIDivergence and ((showRegularBearDiv and phFound and priceHH and oscLH) or (showHiddenBearDiv and phFound and priceLH and oscHH))
+
 regularBullDiv = showRSIDivergence and showRegularBullDiv and plFound and priceLL and oscHL
 hiddenBullDiv = showRSIDivergence and showHiddenBullDiv and plFound and priceHL and oscLL
 regularBearDiv = showRSIDivergence and showRegularBearDiv and phFound and priceHH and oscLH
 hiddenBearDiv = showRSIDivergence and showHiddenBearDiv and phFound and priceLH and oscHH
 
 // =========================
-// RSI Divergence Markers
+// Divergence Markers
 // =========================
-plotshape(regularBullDiv, offset=-lbR, title="Regular Bullish", style=shape.triangleup, location=location.belowbar, color=oversoldColor, size=size.small)
-plotshape(hiddenBullDiv, offset=-lbR, title="Hidden Bullish", style=shape.triangleup, location=location.belowbar, color=oversoldColor, size=size.small)
-plotshape(regularBearDiv, offset=-lbR, title="Regular Bearish", style=shape.triangledown, location=location.abovebar, color=overboughtColor, size=size.small)
-plotshape(hiddenBearDiv, offset=-lbR, title="Hidden Bearish", style=shape.triangledown, location=location.abovebar, color=overboughtColor, size=size.small)
+plotshape(regularBullDiv, offset=-lbR, title="일반 강세 다이버전스", style=shape.triangleup, location=location.belowbar, color=oversoldColor, size=size.small)
+plotshape(hiddenBullDiv, offset=-lbR, title="히든 강세 다이버전스", style=shape.triangleup, location=location.belowbar, color=oversoldColor, size=size.small)
+plotshape(regularBearDiv, offset=-lbR, title="일반 약세 다이버전스", style=shape.triangledown, location=location.abovebar, color=overboughtColor, size=size.small)
+plotshape(hiddenBearDiv, offset=-lbR, title="히든 약세 다이버전스", style=shape.triangledown, location=location.abovebar, color=overboughtColor, size=size.small)
 
 // =========================
-// ATR Calculation
+// ATR
 // =========================
 atr = ta.atr(atrLength)
 
 // =========================
-// Divergence Follow-through Setup Zone (ATR Based)
+// Background Trigger Signals
 // =========================
-recentBullDivBars = ta.barssince(regularBullDiv or hiddenBullDiv)
-recentBearDivBars = ta.barssince(regularBearDiv or hiddenBearDiv)
-
-hasRecentBullDiv = recentBullDivBars >= 0 and recentBullDivBars <= setupLookbackBars
-hasRecentBearDiv = recentBearDivBars >= 0 and recentBearDivBars <= setupLookbackBars
-
-bullDivRefClose = ta.valuewhen(regularBullDiv or hiddenBullDiv, close[lbR], 0)
-bullDivRefRsi = ta.valuewhen(regularBullDiv or hiddenBullDiv, osc[lbR], 0)
-bullDivRefAtr = ta.valuewhen(regularBullDiv or hiddenBullDiv, atr[lbR], 0)
-
-bearDivRefClose = ta.valuewhen(regularBearDiv or hiddenBearDiv, close[lbR], 0)
-bearDivRefRsi = ta.valuewhen(regularBearDiv or hiddenBearDiv, osc[lbR], 0)
-bearDivRefAtr = ta.valuewhen(regularBearDiv or hiddenBearDiv, atr[lbR], 0)
-
-// 강세 배경 구간
-bullPriceDrop = hasRecentBullDiv and not na(bullDivRefClose) ? bullDivRefClose - close : na
-bullRsiDrop = hasRecentBullDiv and not na(bullDivRefRsi) ? bullDivRefRsi - osc : na
-bullAtrThreshold = not na(bullDivRefAtr) ? bullDivRefAtr * atrMultiplier : na
-
-bullPriceDislocation = hasRecentBullDiv and not na(bullPriceDrop) and not na(bullRsiDrop) and not na(bullAtrThreshold) and bullPriceDrop >= bullAtrThreshold and bullRsiDrop <= rsiMoveLimit
-
-bullCRSIFilter = not useCRSISetupFilter or isConfirmedOversold or (not na(db) and crsi <= db)
-bullVolumeFilter = not useVolumeSetupFilter or abnormalBuyVolume or bullSmartVolumeSignal or volume > ta.sma(volume, 20) * 1.05
-
-bullSetupZone = showSetupZone and bullPriceDislocation and bullCRSIFilter and bullVolumeFilter
-
-// 약세 배경 구간
-bearPriceRise = hasRecentBearDiv and not na(bearDivRefClose) ? close - bearDivRefClose : na
-bearRsiRise = hasRecentBearDiv and not na(bearDivRefRsi) ? osc - bearDivRefRsi : na
-bearAtrThreshold = not na(bearDivRefAtr) ? bearDivRefAtr * atrMultiplier : na
-
-bearPriceDislocation = hasRecentBearDiv and not na(bearPriceRise) and not na(bearRsiRise) and not na(bearAtrThreshold) and bearPriceRise >= bearAtrThreshold and bearRsiRise <= rsiMoveLimit
-
-bearCRSIFilter = not useCRSISetupFilter or isConfirmedOverbought or (not na(ub) and crsi >= ub)
-bearVolumeFilter = not useVolumeSetupFilter or abnormalSellVolume or bearSmartVolumeSignal or volume > ta.sma(volume, 20) * 1.05
-
-bearSetupZone = showSetupZone and bearPriceDislocation and bearCRSIFilter and bearVolumeFilter
+bullDivTrigger = bullDiv
+bearDivTrigger = bearDiv
+bullCandleTrigger = isOversold
+bearCandleTrigger = isOverbought
 
 // =========================
-// Background Rendering
+// Divergence-based Background Logic
 // =========================
-bgcolor(
-     bullSetupZone ? setupBullBgColor :
-     bearSetupZone ? setupBearBgColor :
-     na,
-     title="다이버전스 이후 ATR 배경 구간"
-)
+bullDivBars = ta.barssince(bullDivTrigger)
+bearDivBars = ta.barssince(bearDivTrigger)
+
+hasBullDiv = bullDivBars >= 0 and bullDivBars <= setupLookbackBars
+hasBearDiv = bearDivBars >= 0 and bearDivBars <= setupLookbackBars
+
+bullDivRefClose = ta.valuewhen(bullDivTrigger, close, 0)
+bullDivRefRsi = ta.valuewhen(bullDivTrigger, osc, 0)
+bullDivRefAtr = ta.valuewhen(bullDivTrigger, atr, 0)
+
+bearDivRefClose = ta.valuewhen(bearDivTrigger, close, 0)
+bearDivRefRsi = ta.valuewhen(bearDivTrigger, osc, 0)
+bearDivRefAtr = ta.valuewhen(bearDivTrigger, atr, 0)
+
+bullDivPriceMove = hasBullDiv and not na(bullDivRefClose) ? bullDivRefClose - close : na
+bullDivRsiMove = hasBullDiv and not na(bullDivRefRsi) ? bullDivRefRsi - osc : na
+bullDivAtrNeed = hasBullDiv and not na(bullDivRefAtr) ? bullDivRefAtr * atrMultiplier : na
+
+bearDivPriceMove = hasBearDiv and not na(bearDivRefClose) ? close - bearDivRefClose : na
+bearDivRsiMove = hasBearDiv and not na(bearDivRefRsi) ? osc - bearDivRefRsi : na
+bearDivAtrNeed = hasBearDiv and not na(bearDivRefAtr) ? bearDivRefAtr * atrMultiplier : na
+
+bullBgFromDiv = hasBullDiv and bullDivBars > 0 and not na(bullDivPriceMove) and not na(bullDivRsiMove) and not na(bullDivAtrNeed) and bullDivPriceMove >= bullDivAtrNeed and bullDivRsiMove <= rsiMoveLimit
+bearBgFromDiv = hasBearDiv and bearDivBars > 0 and not na(bearDivPriceMove) and not na(bearDivRsiMove) and not na(bearDivAtrNeed) and bearDivPriceMove >= bearDivAtrNeed and bearDivRsiMove <= rsiMoveLimit
 
 // =========================
-// Alert Conditions
+// Candle-based Background Logic
+// =========================
+bullCandleBars = ta.barssince(bullCandleTrigger)
+bearCandleBars = ta.barssince(bearCandleTrigger)
+
+hasBullCandle = bullCandleBars >= 0 and bullCandleBars <= setupLookbackBars
+hasBearCandle = bearCandleBars >= 0 and bearCandleBars <= setupLookbackBars
+
+bullCandleRefClose = ta.valuewhen(bullCandleTrigger, close, 0)
+bullCandleRefRsi = ta.valuewhen(bullCandleTrigger, osc, 0)
+bullCandleRefAtr = ta.valuewhen(bullCandleTrigger, atr, 0)
+
+bearCandleRefClose = ta.valuewhen(bearCandleTrigger, close, 0)
+bearCandleRefRsi = ta.valuewhen(bearCandleTrigger, osc, 0)
+bearCandleRefAtr = ta.valuewhen(bearCandleTrigger, atr, 0)
+
+bullCandlePriceMove = hasBullCandle and not na(bullCandleRefClose) ? bullCandleRefClose - close : na
+bullCandleRsiMove = hasBullCandle and not na(bullCandleRefRsi) ? bullCandleRefRsi - osc : na
+bullCandleAtrNeed = hasBullCandle and not na(bullCandleRefAtr) ? bullCandleRefAtr * atrMultiplier : na
+
+bearCandlePriceMove = hasBearCandle and not na(bearCandleRefClose) ? close - bearCandleRefClose : na
+bearCandleRsiMove = hasBearCandle and not na(bearCandleRefRsi) ? osc - bearCandleRefRsi : na
+bearCandleAtrNeed = hasBearCandle and not na(bearCandleRefAtr) ? bearCandleRefAtr * atrMultiplier : na
+
+bullBgFromCandle = hasBullCandle and bullCandleBars > 0 and not na(bullCandlePriceMove) and not na(bullCandleRsiMove) and not na(bullCandleAtrNeed) and bullCandlePriceMove >= bullCandleAtrNeed and bullCandleRsiMove <= rsiMoveLimit
+bearBgFromCandle = hasBearCandle and bearCandleBars > 0 and not na(bearCandlePriceMove) and not na(bearCandleRsiMove) and not na(bearCandleAtrNeed) and bearCandlePriceMove >= bearCandleAtrNeed and bearCandleRsiMove <= rsiMoveLimit
+
+// =========================
+// Background Filters
+// =========================
+bullBgCRSIFilter = not useCRSIFilterForBg or isOversold or (not na(db) and crsi <= db)
+bearBgCRSIFilter = not useCRSIFilterForBg or isOverbought or (not na(ub) and crsi >= ub)
+
+bullBgVolumeFilter = not useVolumeFilterForBg or abnormalBuyVolume or bullSmartVolumeSignal or volume > ta.sma(volume, 20) * 1.05
+bearBgVolumeFilter = not useVolumeFilterForBg or abnormalSellVolume or bearSmartVolumeSignal or volume > ta.sma(volume, 20) * 1.05
+
+bullBgFromDiv := bullBgFromDiv and bullBgCRSIFilter and bullBgVolumeFilter and useDivForBg and showBgZone
+bearBgFromDiv := bearBgFromDiv and bearBgCRSIFilter and bearBgVolumeFilter and useDivForBg and showBgZone
+bullBgFromCandle := bullBgFromCandle and bullBgCRSIFilter and bullBgVolumeFilter and useCandleForBg and showBgZone
+bearBgFromCandle := bearBgFromCandle and bearBgCRSIFilter and bearBgVolumeFilter and useCandleForBg and showBgZone
+
+// =========================
+// Background Strength
+// =========================
+bullBgStrong = bullBgFromDiv and bullBgFromCandle
+bearBgStrong = bearBgFromDiv and bearBgFromCandle
+
+bullBgMid = bullBgFromDiv and not bullBgFromCandle
+bearBgMid = bearBgFromDiv and not bearBgFromCandle
+
+bullBgWeak = bullBgFromCandle and not bullBgFromDiv
+bearBgWeak = bearBgFromCandle and not bearBgFromDiv
+
+bullBgOn = bullBgFromDiv or bullBgFromCandle
+bearBgOn = bearBgFromDiv or bearBgFromCandle
+
+bullBgColor = bullBgStrong ? color.new(bullBgBaseColor, bullBgStrongTransparency) : bullBgMid ? color.new(bullBgBaseColor, bullBgMidTransparency) : bullBgWeak ? color.new(bullBgBaseColor, bullBgWeakTransparency) : na
+bearBgColor = bearBgStrong ? color.new(bearBgBaseColor, bearBgStrongTransparency) : bearBgMid ? color.new(bearBgBaseColor, bearBgMidTransparency) : bearBgWeak ? color.new(bearBgBaseColor, bearBgWeakTransparency) : na
+
+finalBgColor = not na(bullBgColor) ? bullBgColor : not na(bearBgColor) ? bearBgColor : na
+bgcolor(finalBgColor, title="강세/약세 배경 구간")
+
+// =========================
+// Entry Alerts
 // =========================
 overboughtEnter = ta.crossover(crsi, absoluteOB)
 oversoldEnter = ta.crossunder(crsi, absoluteOS)
 
-repeatOverboughtAlert = barstate.isconfirmed and enableRepeatingOBOSAlert and isConfirmedOverbought
-repeatOversoldAlert = barstate.isconfirmed and enableRepeatingOBOSAlert and isConfirmedOversold
+repeatOverboughtAlert = barstate.isconfirmed and enableRepeatingOBOSAlert and isOverbought
+repeatOversoldAlert = barstate.isconfirmed and enableRepeatingOBOSAlert and isOversold
 
-overboughtAlert = barstate.isconfirmed and overboughtEnter
-oversoldAlert = barstate.isconfirmed and oversoldEnter
+bullSignalAlert = barstate.isconfirmed and (oversoldEnter or bullDiv)
+bearSignalAlert = barstate.isconfirmed and (overboughtEnter or bearDiv)
 
-regularBullAlert = barstate.isconfirmed and regularBullDiv
-hiddenBullAlert = barstate.isconfirmed and hiddenBullDiv
-regularBearAlert = barstate.isconfirmed and regularBearDiv
-hiddenBearAlert = barstate.isconfirmed and hiddenBearDiv
+bullBgAlert = barstate.isconfirmed and bullBgOn
+bearBgAlert = barstate.isconfirmed and bearBgOn
 
-alertcondition(overboughtAlert, title="cRSI 과매수 진입", message="cRSI 과매수 진입 알림")
-alertcondition(oversoldAlert, title="cRSI 과매도 진입", message="cRSI 과매도 진입 알림")
+bullBgStrongAlert = barstate.isconfirmed and bullBgStrong
+bearBgStrongAlert = barstate.isconfirmed and bearBgStrong
 
-alertcondition(repeatOverboughtAlert, title="cRSI 과매수 반복", message="cRSI 과매수 상태 지속 알림")
-alertcondition(repeatOversoldAlert, title="cRSI 과매도 반복", message="cRSI 과매도 상태 지속 알림")
+alertcondition(oversoldEnter, title="초기 매수 신호 - 과매도 진입", message="cRSI 과매도 진입")
+alertcondition(overboughtEnter, title="초기 매도 신호 - 과매수 진입", message="cRSI 과매수 진입")
 
-alertcondition(regularBullAlert, title="RSI 일반 강세 다이버전스", message="RSI 일반 강세 다이버전스 발생")
-alertcondition(hiddenBullAlert, title="RSI 히든 강세 다이버전스", message="RSI 히든 강세 다이버전스 발생")
-alertcondition(regularBearAlert, title="RSI 일반 약세 다이버전스", message="RSI 일반 약세 다이버전스 발생")
-alertcondition(hiddenBearAlert, title="RSI 히든 약세 다이버전스", message="RSI 히든 약세 다이버전스 발생")
+alertcondition(repeatOversoldAlert, title="반복 매수 상태 - 과매도 지속", message="cRSI 과매도 상태 지속")
+alertcondition(repeatOverboughtAlert, title="반복 매도 상태 - 과매수 지속", message="cRSI 과매수 상태 지속")
 
-allBullAlert = oversoldAlert or regularBullAlert or hiddenBullAlert
-allBearAlert = overboughtAlert or regularBearAlert or hiddenBearAlert
+alertcondition(regularBullDiv, title="초기 매수 신호 - 일반 강세 다이버전스", message="일반 강세 다이버전스 발생")
+alertcondition(hiddenBullDiv, title="초기 매수 신호 - 히든 강세 다이버전스", message="히든 강세 다이버전스 발생")
+alertcondition(regularBearDiv, title="초기 매도 신호 - 일반 약세 다이버전스", message="일반 약세 다이버전스 발생")
+alertcondition(hiddenBearDiv, title="초기 매도 신호 - 히든 약세 다이버전스", message="히든 약세 다이버전스 발생")
 
-alertcondition(allBullAlert, title="통합 매수 계열 알림", message="과매도 진입 또는 강세 다이버전스 발생")
-alertcondition(allBearAlert, title="통합 매도 계열 알림", message="과매수 진입 또는 약세 다이버전스 발생")
+alertcondition(bullSignalAlert, title="초기 매수 신호 - 통합", message="과매도 진입 또는 강세 다이버전스 발생")
+alertcondition(bearSignalAlert, title="초기 매도 신호 - 통합", message="과매수 진입 또는 약세 다이버전스 발생")
 
-allBullAlertRepeat = repeatOversoldAlert or regularBullAlert or hiddenBullAlert
-allBearAlertRepeat = repeatOverboughtAlert or regularBearAlert or hiddenBearAlert
+alertcondition(bullBgOn, title="배경 강세 구간 - ON", message="실제 강세 배경 구간이 차트에 표시됨")
+alertcondition(bearBgOn, title="배경 약세 구간 - ON", message="실제 약세 배경 구간이 차트에 표시됨")
 
-alertcondition(allBullAlertRepeat, title="통합 매수 계열 반복 알림", message="과매도 상태 지속 또는 강세 다이버전스 발생")
-alertcondition(allBearAlertRepeat, title="통합 매도 계열 반복 알림", message="과매수 상태 지속 또는 약세 다이버전스 발생")
-
-alertcondition(bullSetupZone, title="기본 강세 ATR 배경 구간", message="강세 다이버전스 이후 ATR 기준 과도 하락 반등 감시 구간")
-alertcondition(bearSetupZone, title="기본 약세 ATR 배경 구간", message="약세 다이버전스 이후 ATR 기준 과도 상승 되돌림 감시 구간")
+alertcondition(bullBgStrong, title="배경 강세 구간 - 강한 신호", message="다이버전스 기준과 캔들 기준이 동시에 충족된 강세 배경 구간")
+alertcondition(bearBgStrong, title="배경 약세 구간 - 강한 신호", message="다이버전스 기준과 캔들 기준이 동시에 충족된 약세 배경 구간")
 
 // =========================
 // Optional Plots
