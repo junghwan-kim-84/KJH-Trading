@@ -50,6 +50,21 @@
 - 표시 위치: `overlay=true`
 - 지표명: `Dynamic Swing Anchored VWAP (Zeiierman) + Ichimoku Base/Kumo + MA Alignment`
 
+## 현재 기본 세팅
+
+이 스크립트는 현재 `스윙형` 기준 기본값으로 맞춰져 있습니다.
+
+- `Swing Period`: `20`
+- `Adaptive Price Tracking`: `40`
+- `Adapt APT by ATR ratio`: `false`
+- `Volatility Bias`: `2.0`
+- `Base Line Length`: `26`
+- `Leading Span B Length`: `52`
+- `Displacement`: `26`
+- `MA Length`: `20`
+
+짧은 노이즈를 과하게 따라가기보다, 한 번 형성된 추세 구조와 중기 기준 가격대를 안정적으로 해석하는 쪽에 무게를 둔 설정입니다.
+
 ## 주요 기능
 
 ### 1. 스윙 포인트 탐지
@@ -59,6 +74,8 @@
 - `Swing Period`: 스윙 고점/저점 탐지 기준 봉 수
 - 스윙이 전환되면 `HH`, `HL`, `LH`, `LL` 라벨이 차트에 표시됩니다.
 
+기본값 `20`은 너무 잦은 전환 신호를 줄이고, 스윙 고점/저점이 어느 정도 의미 있게 형성된 뒤에 구조를 읽도록 맞춘 값입니다.
+
 이 구조를 통해 단순 선 하나가 아니라, 현재 시장이 고점을 높이는지 낮추는지까지 함께 해석할 수 있습니다.
 
 ### 2. Dynamic Swing Anchored VWAP
@@ -66,6 +83,8 @@
 - `Adaptive Price Tracking`: VWAP 반응 속도 조절값
 - `Adapt APT by ATR ratio`: ATR 비율에 따라 반응 속도를 자동 조절할지 여부
 - `Volatility Bias`: 변동성이 반응 속도에 미치는 영향 크기
+
+현재 기본값은 `Adaptive Price Tracking = 40`, `Adapt APT by ATR ratio = false`, `Volatility Bias = 2.0`입니다.
 
 스윙 방향이 바뀌면 해당 스윙 지점부터 VWAP 계산이 다시 시작되고, 이후에는 가격과 거래량을 반영한 적응형 방식으로 선이 이어집니다.
 
@@ -92,6 +111,8 @@
 - `MA Length`: 이동평균 길이
 - `MA Source`: 이동평균 계산 기준 가격
 - `Show Alignment Background`: 배경 표시 여부
+
+현재 기본값 `MA Length = 20`은 스윙 구조 해석과 맞물리도록, 너무 빠르지 않게 정렬 상태를 확인하는 용도에 맞춰져 있습니다.
 
 스크립트는 이동평균선 자체를 차트에 그리지는 않지만, 내부적으로 MA를 계산한 뒤 아래 정렬 조건을 검사합니다.
 
@@ -134,3 +155,4 @@
 - 적응형 VWAP는 일반 고정 VWAP와 다르게 스윙 전환 시점마다 기준이 다시 설정됩니다.
 - 배경색 정렬은 MA, 기준선, VWAP의 상대적 위치를 보여주는 보조 해석용 신호입니다.
 - 횡보 구간에서는 스윙 전환과 정렬 신호가 잦아져 해석 난도가 높아질 수 있습니다.
+- 현재 기본값은 `초단타`보다 `스윙 추세 확인`에 맞춘 값이므로, 매우 짧은 타임프레임에서는 반응이 느리게 느껴질 수 있습니다.

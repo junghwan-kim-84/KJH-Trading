@@ -18,10 +18,10 @@ var string t9 = "Width of the VWAP lines drawn on the chart. Larger values make 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~}
 
 // ~~ Inputs {
-prd      = input.int(50, title='Swing Period', minval=2, group='Swing Points', tooltip=t1)
-baseAPT  = input.float(20, 'Adaptive Price Tracking', minval=1, step=1, group='Swing Points', tooltip=t2)
+prd      = input.int(20, title='Swing Period', minval=2, group='Swing Points', tooltip=t1)
+baseAPT  = input.float(40, 'Adaptive Price Tracking', minval=1, step=1, group='Swing Points', tooltip=t2)
 useAdapt = input.bool(false, 'Adapt APT by ATR ratio', group='Swing Points', tooltip=t3)
-volBias  = input.float(10.0, 'Volatility Bias', minval=0.1, step=0.1, group='Swing Points', tooltip=t4)
+volBias  = input.float(2.0, 'Volatility Bias', minval=0.1, step=0.1, group='Swing Points', tooltip=t4)
 
 highS = input.color(color.rgb(0, 107, 116), title="Swing Labels", group="Style", inline="Swing", tooltip=t5)
 lowS  = input.color(color.rgb(145, 22, 31), title="", group="Style", inline="Swing", tooltip=t6)
@@ -42,7 +42,7 @@ kumoBearColor       = input.color(color.new(color.gray, 80), "", group=ichimokuG
 
 // Moving Average (calculation only)
 maGroup  = "Moving Average"
-maLength = input.int(9, "MA Length", minval=1, group=maGroup)
+maLength = input.int(20, "MA Length", minval=1, group=maGroup)
 maSource = input.source(close, "MA Source", group=maGroup)
 
 // Alignment
