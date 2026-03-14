@@ -1,4 +1,4 @@
-# cRSI + MFI Reversal Risk Signal
+# 비정상 가격 추적 (보조)
 
 트레이딩뷰에서 사용할 수 있는 Pine Script 보조지표 설명서입니다.
 
@@ -26,6 +26,16 @@
 - `cRSI` 극단 구간 진입 여부
 - 괴리 축소 여부
 - `cRSI` 또는 `MFI` 턴 발생 여부
+
+## 사용 지표
+
+이 스크립트는 아래 지표를 조합해서 보조 반전 위험을 판단합니다.
+
+- `cRSI`
+- `MFI`
+- 최근 `cRSI` 분포 기반 동적 밴드
+- `cRSI - MFI` 괴리 배경
+- `Bearish / Bullish Reversal Risk` 라벨
 
 ## 트레이딩뷰 적용 방법
 

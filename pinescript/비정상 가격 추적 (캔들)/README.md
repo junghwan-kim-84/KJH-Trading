@@ -1,4 +1,4 @@
-# MA + cRSI + Vol/Div + ATR Zone (Simple Alerts)
+# 비정상 가격 추적 (캔들)
 
 트레이딩뷰에서 사용할 수 있는 Pine Script 지표 설명서입니다.
 
@@ -19,6 +19,16 @@
 
 - 다이버전스 기준
 - 과매수 / 과매도 캔들색 기준
+
+## 사용 지표
+
+이 스크립트는 아래 지표를 차트 위에 합쳐서 보여줍니다.
+
+- `Moving Average`
+- `cRSI`
+- `Buy / Sell Volume`
+- `RSI Divergence`
+- `ATR` 기반 배경 구간
 
 ## 트레이딩뷰 적용 방법
 

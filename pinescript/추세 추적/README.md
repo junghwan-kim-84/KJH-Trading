@@ -1,4 +1,4 @@
-# Dynamic Swing Anchored VWAP + Ichimoku Base/Kumo + MA Alignment
+# 추세 추적
 
 트레이딩뷰에서 사용할 수 있는 Pine Script 지표 설명서입니다.
 
@@ -10,6 +10,15 @@
 이 지표는 차트 위에 스윙 고점/저점을 기준으로 다시 계산되는 적응형 VWAP 라인을 그려서, 현재 추세의 기준 가격대를 시각적으로 추적할 수 있도록 만든 오버레이 스크립트입니다.
 
 여기에 일목균형표 기준선과 구름, 그리고 이동평균선-기준선-VWAP의 정렬 상태까지 함께 표시해서, 단순 가격 위치가 아니라 추세 구조와 정렬 상태를 한 화면에서 확인할 수 있도록 구성되어 있습니다.
+
+## 사용 지표
+
+이 스크립트는 아래 지표를 조합해서 추세를 봅니다.
+
+- `Dynamic Swing Anchored VWAP`
+- `Ichimoku Base Line / Kumo`
+- `Simple Moving Average`
+- `HH / HL / LH / LL` 스윙 구조 라벨
 
 ## 트레이딩뷰 적용 방법
 

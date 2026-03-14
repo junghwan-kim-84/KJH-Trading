@@ -11,6 +11,16 @@
 
 여기에 `비정상 거래량`과 `추세 정렬 배경`까지 함께 표시해서, 단순 거래량 크기보다 `실제 매수/매도 압력`을 더 해석하기 쉽게 만든 지표입니다.
 
+## 사용 지표
+
+이 스크립트는 아래 지표를 조합해서 거래량 압력과 방향 정렬을 봅니다.
+
+- `Buy Volume / Sell Volume`
+- `Abnormal Volume`
+- `Dynamic Swing Anchored VWAP`
+- `Ichimoku Base Line`
+- `Simple Moving Average`
+
 ## 트레이딩뷰 적용 방법
 
 1. 트레이딩뷰에서 `Pine Editor`를 엽니다.
