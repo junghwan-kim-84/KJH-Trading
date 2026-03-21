@@ -1,5 +1,5 @@
 //@version=6
-indicator("abnormal-price-tracker-candles", overlay=true, format=format.volume, precision=0)
+indicator("abnormal-price-tracker-candles", overlay=true, format=format.volume, precision=0, max_labels_count=500)
 
 // =========================
 // MA Inputs
@@ -46,9 +46,7 @@ lbL = input.int(5, title="Pivot Left")
 rangeUpper = input.int(60, title="최대 탐색 범위")
 rangeLower = input.int(5, title="최소 탐색 범위")
 showRegularBullDiv = input.bool(true, title="일반 강세 다이버전스")
-showHiddenBullDiv = input.bool(false, title="히든 강세 다이버전스")
 showRegularBearDiv = input.bool(true, title="일반 약세 다이버전스")
-showHiddenBearDiv = input.bool(false, title="히든 약세 다이버전스")
 
 // =========================
 // Background Zone Inputs
@@ -70,6 +68,64 @@ bearBgBaseColor = input.color(color.orange, title="약세 배경 색상")
 bearBgStrongColor = input.color(color.red, title="강한 약세 배경 색상")
 
 bgTransparency = input.int(62, minval=0, maxval=100, title="배경 투명도")
+
+// =========================
+// L/S Entry Signal Inputs
+// =========================
+compositeGroup = "L/S 진입 신호"
+showCompositeLabels = input.bool(true, title="L/S 진입 라벨 표시", group=compositeGroup)
+setupValidityBars = input.int(6, title="변곡 후보 유효시간", minval=1, maxval=20, group=compositeGroup)
+compositeLookbackBars = input.int(3, title="진입 확인 봉 수", minval=1, maxval=20, group=compositeGroup)
+compositeMinSignals = input.int(2, title="변곡점 축 최소 충족 수", minval=2, maxval=3, group=compositeGroup)
+entryVolumePressureRatio = input.float(1.2, title="진입 거래량 압력 비율", minval=1.0, step=0.05, group=compositeGroup)
+buyCompositeColor = input.color(color.rgb(46, 125, 50), title="L 라벨 색상", group=compositeGroup, inline="ls")
+sellCompositeColor = input.color(color.rgb(198, 40, 40), title="S 라벨 색상", group=compositeGroup, inline="ls")
+compositeLabelAtrOffset = input.float(0.35, title="L/S 라벨 ATR 간격", minval=0.1, step=0.05, group=compositeGroup)
+entryMaxDistanceFromMAAtr = input.float(1.2, title="추격 진입 제한 MA 거리(ATR)", minval=0.1, step=0.1, group=compositeGroup)
+entryMaxMoveFromSetupAtr = input.float(1.8, title="추격 진입 제한 변곡점 이탈(ATR)", minval=0.1, step=0.1, group=compositeGroup)
+sameDirectionCooldownBars = input.int(8, title="같은 방향 재발신 제한 봉 수", minval=1, maxval=100, group=compositeGroup)
+
+// =========================
+// Volume Pressure Tracker Inputs
+// =========================
+volumeCompositeGroup = "거래량 압력 종합 신호"
+vpLength = input.int(20, title="거래량 비교 봉 수", minval=1, group=volumeCompositeGroup)
+vpMultiplier = input.float(1.0, title="거래량 비정상 배수", minval=0, group=volumeCompositeGroup)
+vpSwingPeriod = input.int(20, title="거래량 정렬 Swing Period", minval=2, group=volumeCompositeGroup)
+vpBaseAPT = input.float(20.0, title="거래량 정렬 Adaptive Price Tracking", minval=1, step=1, group=volumeCompositeGroup)
+vpUseAdapt = input.bool(false, title="거래량 정렬 APT 적응 사용", group=volumeCompositeGroup)
+vpVolBias = input.float(10.0, title="거래량 정렬 Volatility Bias", minval=0.1, step=0.1, group=volumeCompositeGroup)
+vpBasePeriods = input.int(20, minval=1, title="거래량 정렬 Base Line Length", group=volumeCompositeGroup)
+vpMaLength = input.int(5, title="거래량 정렬 MA Length", minval=1, group=volumeCompositeGroup)
+
+// =========================
+// Helper Signal Inputs
+// =========================
+helperCompositeGroup = "보조 종합 신호"
+helperMfiLength = input.int(14, minval=1, title="MFI Length", group=helperCompositeGroup)
+helperGapThreshold = input.float(18.0, minval=1.0, title="Gap Background Threshold", group=helperCompositeGroup)
+helperWeakGapThreshold = input.float(10.0, minval=0.0, title="Weak Gap Threshold", group=helperCompositeGroup)
+helperStrongGapThreshold = input.float(14.0, minval=0.0, title="Strong Gap Threshold", group=helperCompositeGroup)
+helperBearishZone = input.float(55.0, minval=0.0, maxval=100.0, title="Bearish Risk cRSI Zone", group=helperCompositeGroup)
+helperBullishZone = input.float(45.0, minval=0.0, maxval=100.0, title="Bullish Risk cRSI Zone", group=helperCompositeGroup)
+helperVolumeAvgLength = input.int(3, minval=1, title="보조 거래량 평균 길이", group=helperCompositeGroup)
+helperVolumeMultiplier = input.float(1.0, minval=0.1, step=0.1, title="보조 거래량 배수", group=helperCompositeGroup)
+helperTrendLength = input.int(5, minval=2, title="보조 추세 길이", group=helperCompositeGroup)
+helperPriceStretchThreshold = input.float(1.5, minval=0.1, step=0.1, title="Price Stretch (%)", group=helperCompositeGroup)
+helperUseGapFade = input.bool(true, title="Use Gap Fade Condition", group=helperCompositeGroup)
+helperGapFadeLookback = input.int(1, minval=1, maxval=5, title="Gap Fade Lookback", group=helperCompositeGroup)
+helperMinStrength = input.int(1, minval=1, maxval=3, title="보조 최소 강도", group=helperCompositeGroup)
+
+donchian(len) =>
+    math.avg(ta.lowest(len), ta.highest(len))
+
+alphaFromAPT(apt) =>
+    decay = math.exp(-math.log(2.0) / math.max(1.0, apt))
+    1.0 - decay
+
+recentSignal(cond, lookbackBars) =>
+    bars = ta.barssince(cond)
+    bars >= 0 and bars <= lookbackBars
 
 // =========================
 // Moving Average
@@ -188,35 +244,144 @@ inRangePl = _inRange(plFound[1])
 inRangePh = _inRange(phFound[1])
 
 oscHL = osc[lbR] > ta.valuewhen(plFound, osc[lbR], 1) and inRangePl
-oscLL = osc[lbR] < ta.valuewhen(plFound, osc[lbR], 1) and inRangePl
 oscLH = osc[lbR] < ta.valuewhen(phFound, osc[lbR], 1) and inRangePh
-oscHH = osc[lbR] > ta.valuewhen(phFound, osc[lbR], 1) and inRangePh
 
 priceLL = low[lbR] < ta.valuewhen(plFound, low[lbR], 1)
-priceHL = low[lbR] > ta.valuewhen(plFound, low[lbR], 1)
 priceHH = high[lbR] > ta.valuewhen(phFound, high[lbR], 1)
-priceLH = high[lbR] < ta.valuewhen(phFound, high[lbR], 1)
 
-bullDiv = showRSIDivergence and ((showRegularBullDiv and plFound and priceLL and oscHL) or (showHiddenBullDiv and plFound and priceHL and oscLL))
-bearDiv = showRSIDivergence and ((showRegularBearDiv and phFound and priceHH and oscLH) or (showHiddenBearDiv and phFound and priceLH and oscHH))
+bullDiv = showRSIDivergence and showRegularBullDiv and plFound and priceLL and oscHL
+bearDiv = showRSIDivergence and showRegularBearDiv and phFound and priceHH and oscLH
 
 regularBullDiv = showRSIDivergence and showRegularBullDiv and plFound and priceLL and oscHL
-hiddenBullDiv = showRSIDivergence and showHiddenBullDiv and plFound and priceHL and oscLL
 regularBearDiv = showRSIDivergence and showRegularBearDiv and phFound and priceHH and oscLH
-hiddenBearDiv = showRSIDivergence and showHiddenBearDiv and phFound and priceLH and oscHH
 
 // =========================
 // Divergence Markers
 // =========================
 plotshape(regularBullDiv, offset=-lbR, title="일반 강세 다이버전스", style=shape.triangleup, location=location.belowbar, color=oversoldColor, size=size.small)
-plotshape(hiddenBullDiv, offset=-lbR, title="히든 강세 다이버전스", style=shape.triangleup, location=location.belowbar, color=oversoldColor, size=size.small)
 plotshape(regularBearDiv, offset=-lbR, title="일반 약세 다이버전스", style=shape.triangledown, location=location.abovebar, color=overboughtColor, size=size.small)
-plotshape(hiddenBearDiv, offset=-lbR, title="히든 약세 다이버전스", style=shape.triangledown, location=location.abovebar, color=overboughtColor, size=size.small)
 
 // =========================
 // ATR
 // =========================
 atr = ta.atr(atrLength)
+signalAtr = ta.atr(50)
+signalAtrAvg = ta.rma(signalAtr, 50)
+signalVolatilityRatio = signalAtrAvg > 0 ? signalAtr / signalAtrAvg : 1.0
+
+// =========================
+// Volume Pressure Tracker Composite Logic
+// =========================
+vpBar = bar_index
+
+var float vpPh = na
+var float vpPl = na
+var int vpPhBar = 0
+var int vpPlBar = 0
+var float vpP = hlc3 * volume
+var float vpVol = volume
+var float vpVap = na
+
+vpPh := ta.highestbars(high, vpSwingPeriod) == 0 ? high : vpPh
+vpPl := ta.lowestbars(low, vpSwingPeriod) == 0 ? low : vpPl
+vpPhBar := ta.highestbars(high, vpSwingPeriod) == 0 ? vpBar : vpPhBar
+vpPlBar := ta.lowestbars(low, vpSwingPeriod) == 0 ? vpBar : vpPlBar
+vpDir = vpPhBar > vpPlBar ? 1 : -1
+
+vpAptRaw = vpUseAdapt ? vpBaseAPT / math.pow(signalVolatilityRatio, vpVolBias) : vpBaseAPT
+vpAptClamped = math.max(5.0, math.min(300.0, vpAptRaw))
+vpAptSeries = math.round(vpAptClamped)
+
+if vpDir != vpDir[1]
+    vpAnchorBar = vpDir > 0 ? vpPlBar : vpPhBar
+    vpAnchorPrice = vpDir > 0 ? vpPl : vpPh
+    vpBarsback = vpBar - vpAnchorBar
+    vpP := vpAnchorPrice * volume[vpBarsback]
+    vpVol := volume[vpBarsback]
+    vpVap := vpVol > 0 ? vpP / vpVol : na
+
+    for i = vpBarsback to 0 by 1
+        alpha = alphaFromAPT(vpAptSeries[i])
+        pxv = hlc3[i] * volume[i]
+        vpP := (1.0 - alpha) * vpP + alpha * pxv
+        vpVol := (1.0 - alpha) * vpVol + alpha * volume[i]
+        vappe = vpVol > 0 ? vpP / vpVol : na
+        if i == 0
+            vpVap := vappe
+else
+    alpha = alphaFromAPT(vpAptSeries)
+    pxv = hlc3 * volume
+    vpP := (1.0 - alpha) * vpP + alpha * pxv
+    vpVol := (1.0 - alpha) * vpVol + alpha * volume
+    vpVap := vpVol > 0 ? vpP / vpVol : na
+
+vpBaseLine = donchian(vpBasePeriods)
+vpMaValue = ta.sma(close, vpMaLength)
+vpBullAlignment = not na(vpVap) and not na(vpBaseLine) and not na(vpMaValue) and vpMaValue > vpBaseLine and vpBaseLine > vpVap
+vpBearAlignment = not na(vpVap) and not na(vpBaseLine) and not na(vpMaValue) and vpMaValue < vpBaseLine and vpBaseLine < vpVap
+vpAvgVolume = ta.sma(volume, vpLength)
+vpAbnormalVolume = volume > vpAvgVolume * (1 + vpMultiplier)
+vpBullPressureSignal = vpBullAlignment and vpAbnormalVolume and buyVolume > sellVolume
+vpBearPressureSignal = vpBearAlignment and vpAbnormalVolume and sellVolume > buyVolume
+
+// =========================
+// Helper Signal Composite Logic
+// =========================
+helperOverboughtLevel = 80.0
+helperOversoldLevel = 20.0
+helperMfi = ta.mfi(hlc3, helperMfiLength)
+
+helperGap = math.abs(crsi - helperMfi)
+helperBearishGapBg = crsi > helperMfi and helperGap >= helperGapThreshold
+helperBullishGapBg = helperMfi > crsi and helperGap >= helperGapThreshold
+
+helperVolAvg = ta.sma(volume, helperVolumeAvgLength)
+helperVolumeOkay = volume > helperVolAvg * helperVolumeMultiplier
+helperPriceEma = ta.ema(close, helperTrendLength)
+helperPriceStretchPct = helperPriceEma != 0 ? (close - helperPriceEma) / helperPriceEma * 100.0 : 0.0
+helperPriceExtendedUp = close > close[helperTrendLength] and helperPriceStretchPct >= helperPriceStretchThreshold
+helperPriceExtendedDown = close < close[helperTrendLength] and helperPriceStretchPct <= -helperPriceStretchThreshold
+
+helperBearishGap = crsi - helperMfi
+helperBullishGap = helperMfi - crsi
+helperBearishGapScore = helperBearishGap > helperStrongGapThreshold ? 2 : helperBearishGap > helperWeakGapThreshold ? 1 : 0
+helperBullishGapScore = helperBullishGap > helperStrongGapThreshold ? 2 : helperBullishGap > helperWeakGapThreshold ? 1 : 0
+
+helperBearishZonePass = crsi >= helperBearishZone or (not na(ub) and crsi >= ub)
+helperBullishZonePass = crsi <= helperBullishZone or (not na(db) and crsi <= db)
+helperBearishGapFade = helperBearishGap < helperBearishGap[helperGapFadeLookback]
+helperBullishGapFade = helperBullishGap < helperBullishGap[helperGapFadeLookback]
+helperCrsiTurningDown = crsi < crsi[1]
+helperCrsiTurningUp = crsi > crsi[1]
+helperMfiTurningDown = helperMfi < helperMfi[1]
+helperMfiTurningUp = helperMfi > helperMfi[1]
+
+helperBearishRiskScore = 0
+helperBearishRiskScore += helperBearishGapBg ? 1 : 0
+helperBearishRiskScore += helperBearishGapScore
+helperBearishRiskScore += helperPriceExtendedUp ? 1 : 0
+helperBearishRiskScore += helperVolumeOkay ? 1 : 0
+helperBearishRiskScore += helperBearishZonePass ? 1 : 0
+helperBearishRiskScore += ((helperUseGapFade and helperBearishGapFade) or (not helperUseGapFade and helperCrsiTurningDown)) ? 1 : 0
+helperBearishRiskScore += (helperCrsiTurningDown or helperMfiTurningDown) ? 1 : 0
+
+helperBullishRiskScore = 0
+helperBullishRiskScore += helperBullishGapBg ? 1 : 0
+helperBullishRiskScore += helperBullishGapScore
+helperBullishRiskScore += helperPriceExtendedDown ? 1 : 0
+helperBullishRiskScore += helperVolumeOkay ? 1 : 0
+helperBullishRiskScore += helperBullishZonePass ? 1 : 0
+helperBullishRiskScore += ((helperUseGapFade and helperBullishGapFade) or (not helperUseGapFade and helperCrsiTurningUp)) ? 1 : 0
+helperBullishRiskScore += (helperCrsiTurningUp or helperMfiTurningUp) ? 1 : 0
+
+helperBearishRiskStrength = helperBearishRiskScore >= 7 ? 3 : helperBearishRiskScore >= 5 ? 2 : helperBearishRiskScore >= 4 ? 1 : 0
+helperBullishRiskStrength = helperBullishRiskScore >= 7 ? 3 : helperBullishRiskScore >= 5 ? 2 : helperBullishRiskScore >= 4 ? 1 : 0
+
+helperBearishRiskRaw = helperBearishGapBg and helperBearishRiskStrength >= helperMinStrength and helperBullishRiskStrength == 0
+helperBullishRiskRaw = helperBullishGapBg and helperBullishRiskStrength >= helperMinStrength and helperBearishRiskStrength == 0
+
+helperBearishSignal = helperBearishRiskRaw and helperMfi > helperOversoldLevel
+helperBullishSignal = helperBullishRiskRaw and helperMfi < helperOverboughtLevel
 
 // =========================
 // Background Trigger Signals
@@ -317,6 +482,97 @@ finalBgColor = not na(bullBgColor) ? bullBgColor : not na(bearBgColor) ? bearBgC
 bgcolor(finalBgColor, title="강세/약세 배경 구간")
 
 // =========================
+// L/S Entry Signals
+// =========================
+bullVolumeRatioPass = sellVolume == 0 ? buyVolume > 0 : buyVolume >= sellVolume * entryVolumePressureRatio
+bearVolumeRatioPass = buyVolume == 0 ? sellVolume > 0 : sellVolume >= buyVolume * entryVolumePressureRatio
+
+helperBullGapContracting = recentSignal(helperBullishGap > 0 and helperBullishGap < helperBullishGap[helperGapFadeLookback], compositeLookbackBars)
+helperBearGapContracting = recentSignal(helperBearishGap > 0 and helperBearishGap < helperBearishGap[helperGapFadeLookback], compositeLookbackBars)
+
+candleBullSignal = recentSignal(isOversold or regularBullDiv or bullBgOn or bullBgStrong, setupValidityBars)
+candleBearSignal = recentSignal(isOverbought or regularBearDiv or bearBgOn or bearBgStrong, setupValidityBars)
+volumeBullSignal = recentSignal((vpBullAlignment and vpAbnormalVolume and bullVolumeRatioPass) or (bullSmartVolumeSignal and bullVolumeRatioPass), setupValidityBars)
+volumeBearSignal = recentSignal((vpBearAlignment and vpAbnormalVolume and bearVolumeRatioPass) or (bearSmartVolumeSignal and bearVolumeRatioPass), setupValidityBars)
+helperBullSignal = recentSignal(helperBullishSignal or (helperBullishGapBg and helperBullishRiskStrength >= math.max(helperMinStrength, 2) and helperBullishZonePass), setupValidityBars) and helperBullGapContracting
+helperBearSignal = recentSignal(helperBearishSignal or (helperBearishGapBg and helperBearishRiskStrength >= math.max(helperMinStrength, 2) and helperBearishZonePass), setupValidityBars) and helperBearGapContracting
+
+buyCompositeScore = (candleBullSignal ? 1 : 0) + (volumeBullSignal ? 1 : 0) + (helperBullSignal ? 1 : 0)
+sellCompositeScore = (candleBearSignal ? 1 : 0) + (volumeBearSignal ? 1 : 0) + (helperBearSignal ? 1 : 0)
+
+buySetupReady = buyCompositeScore >= compositeMinSignals and buyCompositeScore > sellCompositeScore
+sellSetupReady = sellCompositeScore >= compositeMinSignals and sellCompositeScore > buyCompositeScore
+
+buySetupStart = buySetupReady and not buySetupReady[1]
+sellSetupStart = sellSetupReady and not sellSetupReady[1]
+
+recentBuySetup = recentSignal(buySetupStart, compositeLookbackBars)
+recentSellSetup = recentSignal(sellSetupStart, compositeLookbackBars)
+
+var float buySetupLow = na
+var float sellSetupHigh = na
+var int lastLongSignalBar = na
+var int lastShortSignalBar = na
+
+if sellSetupReady
+    lastLongSignalBar := na
+
+if buySetupReady
+    lastShortSignalBar := na
+
+if buySetupStart
+    buySetupLow := low
+else if recentBuySetup
+    buySetupLow := na(buySetupLow) ? low : math.min(buySetupLow, low)
+else
+    buySetupLow := na
+
+if sellSetupStart
+    sellSetupHigh := high
+else if recentSellSetup
+    sellSetupHigh := na(sellSetupHigh) ? high : math.max(sellSetupHigh, high)
+else
+    sellSetupHigh := na
+
+longCrsiRecovery = ta.crossover(crsi, absoluteOS) or (crsi > crsi[1] and crsi[1] <= crsi[2] and crsi <= absoluteOS + 10)
+shortCrsiRecovery = ta.crossunder(crsi, absoluteOB) or (crsi < crsi[1] and crsi[1] >= crsi[2] and crsi >= absoluteOB - 10)
+
+longReversalBar = close > high[1]
+shortReversalBar = close < low[1]
+
+longEntryConfirm = longCrsiRecovery or longReversalBar
+shortEntryConfirm = shortCrsiRecovery or shortReversalBar
+
+longAntiChaseOk = (na(atr) or close <= ma + atr * entryMaxDistanceFromMAAtr) and (na(atr) or na(buySetupLow) or close - buySetupLow <= atr * entryMaxMoveFromSetupAtr)
+shortAntiChaseOk = (na(atr) or close >= ma - atr * entryMaxDistanceFromMAAtr) and (na(atr) or na(sellSetupHigh) or sellSetupHigh - close <= atr * entryMaxMoveFromSetupAtr)
+
+longCooldownActive = not na(lastLongSignalBar) and bar_index - lastLongSignalBar <= sameDirectionCooldownBars and not sellSetupReady
+shortCooldownActive = not na(lastShortSignalBar) and bar_index - lastShortSignalBar <= sameDirectionCooldownBars and not buySetupReady
+
+buyCompositeRaw = barstate.isconfirmed and recentBuySetup and longEntryConfirm and longAntiChaseOk and not sellSetupReady
+sellCompositeRaw = barstate.isconfirmed and recentSellSetup and shortEntryConfirm and shortAntiChaseOk and not buySetupReady
+
+buyCompositeSignal = buyCompositeRaw and not buyCompositeRaw[1] and not longCooldownActive
+sellCompositeSignal = sellCompositeRaw and not sellCompositeRaw[1] and not shortCooldownActive
+
+if buyCompositeSignal
+    lastLongSignalBar := bar_index
+    lastShortSignalBar := na
+
+if sellCompositeSignal
+    lastShortSignalBar := bar_index
+    lastLongSignalBar := na
+
+buyCompositeLabelY = na(atr) ? low : low - atr * compositeLabelAtrOffset
+sellCompositeLabelY = na(atr) ? high : high + atr * compositeLabelAtrOffset
+
+if showCompositeLabels and buyCompositeSignal
+    label.new(bar_index, buyCompositeLabelY, text="L", style=label.style_label_up, color=buyCompositeColor, textcolor=color.white, size=size.normal)
+
+if showCompositeLabels and sellCompositeSignal
+    label.new(bar_index, sellCompositeLabelY, text="S", style=label.style_label_down, color=sellCompositeColor, textcolor=color.white, size=size.normal)
+
+// =========================
 // Entry Alerts
 // =========================
 overboughtEnter = ta.crossover(crsi, absoluteOB)
@@ -325,34 +581,28 @@ oversoldEnter = ta.crossunder(crsi, absoluteOS)
 repeatOverboughtAlert = barstate.isconfirmed and enableRepeatingOBOSAlert and isOverbought
 repeatOversoldAlert = barstate.isconfirmed and enableRepeatingOBOSAlert and isOversold
 
-bullSignalAlert = barstate.isconfirmed and (oversoldEnter or bullDiv)
-bearSignalAlert = barstate.isconfirmed and (overboughtEnter or bearDiv)
-
 bullBgAlert = barstate.isconfirmed and bullBgOn
 bearBgAlert = barstate.isconfirmed and bearBgOn
 
 bullBgStrongAlert = barstate.isconfirmed and bullBgStrong
 bearBgStrongAlert = barstate.isconfirmed and bearBgStrong
 
-alertcondition(oversoldEnter, title="초기 매수 신호 - 과매도 진입", message="cRSI 과매도 진입")
-alertcondition(overboughtEnter, title="초기 매도 신호 - 과매수 진입", message="cRSI 과매수 진입")
+alertcondition(oversoldEnter, title="매수 후보 신호 - 과매도 시작", message="매수 후보 신호 - 과매도 시작")
+alertcondition(overboughtEnter, title="매도 후보 신호 - 과매수 시작", message="매도 후보 신호 - 과매수 시작")
 
-alertcondition(repeatOversoldAlert, title="반복 매수 상태 - 과매도 지속", message="cRSI 과매도 상태 지속")
-alertcondition(repeatOverboughtAlert, title="반복 매도 상태 - 과매수 지속", message="cRSI 과매수 상태 지속")
+alertcondition(repeatOversoldAlert, title="매수 후보 유지 - 과매도 계속", message="매수 후보 유지 - 과매도 계속")
+alertcondition(repeatOverboughtAlert, title="매도 후보 유지 - 과매수 계속", message="매도 후보 유지 - 과매수 계속")
 
-alertcondition(regularBullDiv, title="초기 매수 신호 - 일반 강세 다이버전스", message="일반 강세 다이버전스 발생")
-alertcondition(hiddenBullDiv, title="초기 매수 신호 - 히든 강세 다이버전스", message="히든 강세 다이버전스 발생")
-alertcondition(regularBearDiv, title="초기 매도 신호 - 일반 약세 다이버전스", message="일반 약세 다이버전스 발생")
-alertcondition(hiddenBearDiv, title="초기 매도 신호 - 히든 약세 다이버전스", message="히든 약세 다이버전스 발생")
+alertcondition(regularBullDiv, title="매수 후보 신호 - 하락 힘 약해짐", message="매수 후보 신호 - 하락 힘 약해짐")
+alertcondition(regularBearDiv, title="매도 후보 신호 - 상승 힘 약해짐", message="매도 후보 신호 - 상승 힘 약해짐")
 
-alertcondition(bullSignalAlert, title="초기 매수 신호 - 통합", message="과매도 진입 또는 강세 다이버전스 발생")
-alertcondition(bearSignalAlert, title="초기 매도 신호 - 통합", message="과매수 진입 또는 약세 다이버전스 발생")
+alertcondition(bullBgOn, title="매수 감시 구간 진입", message="매수 감시 구간 진입")
+alertcondition(bearBgOn, title="매도 감시 구간 진입", message="매도 감시 구간 진입")
 
-alertcondition(bullBgOn, title="배경 강세 구간 - ON", message="실제 강세 배경 구간이 차트에 표시됨")
-alertcondition(bearBgOn, title="배경 약세 구간 - ON", message="실제 약세 배경 구간이 차트에 표시됨")
-
-alertcondition(bullBgStrong, title="배경 강세 구간 - 강한 신호", message="다이버전스 기준과 캔들 기준이 동시에 충족된 강세 배경 구간")
-alertcondition(bearBgStrong, title="배경 약세 구간 - 강한 신호", message="다이버전스 기준과 캔들 기준이 동시에 충족된 약세 배경 구간")
+alertcondition(bullBgStrong, title="매수 감시 구간 강화", message="매수 감시 구간 강화")
+alertcondition(bearBgStrong, title="매도 감시 구간 강화", message="매도 감시 구간 강화")
+alertcondition(buyCompositeSignal, title="롱 진입 신호 - L", message="롱 진입 신호 - L")
+alertcondition(sellCompositeSignal, title="숏 진입 신호 - S", message="숏 진입 신호 - S")
 
 // =========================
 // Optional Plots
