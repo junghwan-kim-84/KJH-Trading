@@ -1,5 +1,5 @@
 //@version=6
-indicator("abnormal-price-tracker-candles", overlay=true, format=format.volume, precision=0, max_labels_count=500)
+indicator("Abnormal-Price-Tracker-Candles", overlay=true, format=format.volume, precision=0, max_labels_count=500)
 
 // =========================
 // MA Inputs
@@ -18,11 +18,20 @@ vibration = input.int(10, minval=1, title="cRSI Vibration")
 leveling = input.float(10.0, minval=1.0, maxval=50.0, title="cRSI Leveling (%)")
 absoluteOB = input.float(70.0, title="절대 과매수 값")
 absoluteOS = input.float(30.0, title="절대 과매도 값")
-paintBars = input.bool(true, title="과매수/과매도 시 캔들 색상 변경")
-overboughtColor = input.color(color.red, title="과매수 캔들 색상")
-oversoldColor = input.color(color.aqua, title="과매도 캔들 색상")
+paintBars = input.bool(true, title="비정상 과매수/과매도 캔들 시 색상 변경")
+overboughtColor = input.color(color.red, title="과매수+상단 밴드 초과 캔들 색상")
+oversoldColor = input.color(color.aqua, title="과매도+하단 밴드 초과 캔들 색상")
 showCRSIPlots = input.bool(false, title="cRSI / 밴드 플롯 표시")
-enableRepeatingOBOSAlert = input.bool(true, title="과매수/과매도 반복 알림 사용")
+enableRepeatingOBOSAlert = input.bool(true, title="비정상 과매수/과매도 반복 알림 사용")
+
+// =========================
+// Abnormal Candle Inputs
+// =========================
+bbLength = input.int(20, minval=1, title="비정상 캔들 볼린저 기간")
+bbMultiplier = input.float(2.0, minval=0.1, step=0.1, title="비정상 캔들 볼린저 배수")
+bbBodyBreakRatio = input.float(0.3, minval=0.0, step=0.05, title="비정상 캔들 몸통 밴드 초과 비율")
+bbVisualBreakRatio = input.float(0.15, minval=0.0, step=0.05, title="비정상 캔들 시각 표시 밴드 초과 비율")
+showBBPlots = input.bool(false, title="비정상 캔들 볼린저 밴드 표시")
 
 // =========================
 // Volume Inputs
@@ -53,7 +62,7 @@ showRegularBearDiv = input.bool(true, title="일반 약세 다이버전스")
 // =========================
 showBgZone = input.bool(true, title="배경 구간 표시")
 useDivForBg = input.bool(true, title="다이버전스 기준 배경 사용")
-useCandleForBg = input.bool(true, title="과매수/과매도 캔들 기준 배경 사용")
+useCandleForBg = input.bool(true, title="비정상 과매수/과매도 캔들 기준 배경 사용")
 setupLookbackBars = input.int(36, minval=1, title="기준 신호 이후 추적 봉 수")
 atrLength = input.int(14, minval=1, title="ATR 기간")
 atrMultiplier = input.float(0.8, minval=0.1, step=0.1, title="ATR 과도 이동 배수")
@@ -68,22 +77,6 @@ bearBgBaseColor = input.color(color.orange, title="약세 배경 색상")
 bearBgStrongColor = input.color(color.red, title="강한 약세 배경 색상")
 
 bgTransparency = input.int(62, minval=0, maxval=100, title="배경 투명도")
-
-// =========================
-// L/S Entry Signal Inputs
-// =========================
-compositeGroup = "L/S 진입 신호"
-showCompositeLabels = input.bool(true, title="L/S 진입 라벨 표시", group=compositeGroup)
-setupValidityBars = input.int(6, title="변곡 후보 유효시간", minval=1, maxval=20, group=compositeGroup)
-compositeLookbackBars = input.int(3, title="진입 확인 봉 수", minval=1, maxval=20, group=compositeGroup)
-compositeMinSignals = input.int(2, title="변곡점 축 최소 충족 수", minval=2, maxval=3, group=compositeGroup)
-entryVolumePressureRatio = input.float(1.2, title="진입 거래량 압력 비율", minval=1.0, step=0.05, group=compositeGroup)
-buyCompositeColor = input.color(color.rgb(46, 125, 50), title="L 라벨 색상", group=compositeGroup, inline="ls")
-sellCompositeColor = input.color(color.rgb(198, 40, 40), title="S 라벨 색상", group=compositeGroup, inline="ls")
-compositeLabelAtrOffset = input.float(0.35, title="L/S 라벨 ATR 간격", minval=0.1, step=0.05, group=compositeGroup)
-entryMaxDistanceFromMAAtr = input.float(1.2, title="추격 진입 제한 MA 거리(ATR)", minval=0.1, step=0.1, group=compositeGroup)
-entryMaxMoveFromSetupAtr = input.float(1.8, title="추격 진입 제한 변곡점 이탈(ATR)", minval=0.1, step=0.1, group=compositeGroup)
-sameDirectionCooldownBars = input.int(8, title="같은 방향 재발신 제한 봉 수", minval=1, maxval=100, group=compositeGroup)
 
 // =========================
 // Volume Pressure Tracker Inputs
@@ -193,7 +186,40 @@ for steps = 0 to 100
 isOverbought = crsi >= absoluteOB
 isOversold = crsi <= absoluteOS
 
-barCol = isOverbought ? overboughtColor : isOversold ? oversoldColor : na
+// =========================
+// Abnormal Candle Calculation
+// =========================
+bbBasis = ta.sma(close, bbLength)
+bbDev = ta.stdev(close, bbLength) * bbMultiplier
+bbUpper = bbBasis + bbDev
+bbLower = bbBasis - bbDev
+
+candleBodyHigh = math.max(open, close)
+candleBodyLow = math.min(open, close)
+candleBodySpan = math.max(candleBodyHigh - candleBodyLow, syminfo.mintick)
+candleRangeSpan = math.max(high - low, syminfo.mintick)
+
+upperBodyOutside = math.max(candleBodyHigh - bbUpper, 0.0)
+lowerBodyOutside = math.max(bbLower - candleBodyLow, 0.0)
+upperBodyBreakRatio = upperBodyOutside / candleBodySpan
+lowerBodyBreakRatio = lowerBodyOutside / candleBodySpan
+upperVisualOutside = math.max(high - bbUpper, 0.0)
+lowerVisualOutside = math.max(bbLower - low, 0.0)
+upperVisualBreakRatio = upperVisualOutside / candleRangeSpan
+lowerVisualBreakRatio = lowerVisualOutside / candleRangeSpan
+
+isBearishBandExtended = upperBodyOutside > 0 and upperBodyBreakRatio >= bbBodyBreakRatio
+isBullishBandExtended = lowerBodyOutside > 0 and lowerBodyBreakRatio >= bbBodyBreakRatio
+
+// cRSI 과매수/과매도 상태 중에서 볼린저 밴드를 일정 비율 이상 몸통으로 초과한 캔들만 비정상 캔들로 승격합니다.
+isBearishAbnormalCandle = isOverbought and isBearishBandExtended
+isBullishAbnormalCandle = isOversold and isBullishBandExtended
+
+// 시각 표시는 고가/저가가 밴드 밖으로 일정 비율 이상 나온 경우에만 색을 칠해, 밴드 안쪽 캔들은 기본 색으로 보이게 합니다.
+isVisuallyBearishOutsideBand = upperVisualOutside > 0 and upperVisualBreakRatio >= bbVisualBreakRatio
+isVisuallyBullishOutsideBand = lowerVisualOutside > 0 and lowerVisualBreakRatio >= bbVisualBreakRatio
+
+barCol = isBearishAbnormalCandle and isVisuallyBearishOutsideBand ? overboughtColor : isBullishAbnormalCandle and isVisuallyBullishOutsideBand ? oversoldColor : na
 barcolor(paintBars ? barCol : na)
 
 // =========================
@@ -249,11 +275,11 @@ oscLH = osc[lbR] < ta.valuewhen(phFound, osc[lbR], 1) and inRangePh
 priceLL = low[lbR] < ta.valuewhen(plFound, low[lbR], 1)
 priceHH = high[lbR] > ta.valuewhen(phFound, high[lbR], 1)
 
-bullDiv = showRSIDivergence and showRegularBullDiv and plFound and priceLL and oscHL
-bearDiv = showRSIDivergence and showRegularBearDiv and phFound and priceHH and oscLH
+bullDivRaw = showRSIDivergence and showRegularBullDiv and plFound and priceLL and oscHL
+bearDivRaw = showRSIDivergence and showRegularBearDiv and phFound and priceHH and oscLH
 
-regularBullDiv = showRSIDivergence and showRegularBullDiv and plFound and priceLL and oscHL
-regularBearDiv = showRSIDivergence and showRegularBearDiv and phFound and priceHH and oscLH
+regularBullDiv = bullDivRaw
+regularBearDiv = bearDivRaw
 
 // =========================
 // Divergence Markers
@@ -386,10 +412,10 @@ helperBullishSignal = helperBullishRiskRaw and helperMfi < helperOverboughtLevel
 // =========================
 // Background Trigger Signals
 // =========================
-bullDivTrigger = bullDiv
-bearDivTrigger = bearDiv
-bullCandleTrigger = isOversold
-bearCandleTrigger = isOverbought
+bullDivTrigger = regularBullDiv
+bearDivTrigger = regularBearDiv
+bullCandleTrigger = isBullishAbnormalCandle
+bearCandleTrigger = isBearishAbnormalCandle
 
 // =========================
 // Divergence-based Background Logic
@@ -400,19 +426,19 @@ bearDivBars = ta.barssince(bearDivTrigger)
 hasBullDiv = bullDivBars >= 0 and bullDivBars <= setupLookbackBars
 hasBearDiv = bearDivBars >= 0 and bearDivBars <= setupLookbackBars
 
-bullDivRefClose = ta.valuewhen(bullDivTrigger, close, 0)
-bullDivRefRsi = ta.valuewhen(bullDivTrigger, osc, 0)
-bullDivRefAtr = ta.valuewhen(bullDivTrigger, atr, 0)
+bullDivRefClose = ta.valuewhen(bullDivTrigger, low[lbR], 0)
+bullDivRefRsi = ta.valuewhen(bullDivTrigger, osc[lbR], 0)
+bullDivRefAtr = ta.valuewhen(bullDivTrigger, atr[lbR], 0)
 
-bearDivRefClose = ta.valuewhen(bearDivTrigger, close, 0)
-bearDivRefRsi = ta.valuewhen(bearDivTrigger, osc, 0)
-bearDivRefAtr = ta.valuewhen(bearDivTrigger, atr, 0)
+bearDivRefClose = ta.valuewhen(bearDivTrigger, high[lbR], 0)
+bearDivRefRsi = ta.valuewhen(bearDivTrigger, osc[lbR], 0)
+bearDivRefAtr = ta.valuewhen(bearDivTrigger, atr[lbR], 0)
 
-bullDivPriceMove = hasBullDiv and not na(bullDivRefClose) ? bullDivRefClose - close : na
+bullDivPriceMove = hasBullDiv and not na(bullDivRefClose) ? bullDivRefClose - low : na
 bullDivRsiMove = hasBullDiv and not na(bullDivRefRsi) ? bullDivRefRsi - osc : na
 bullDivAtrNeed = hasBullDiv and not na(bullDivRefAtr) ? bullDivRefAtr * atrMultiplier : na
 
-bearDivPriceMove = hasBearDiv and not na(bearDivRefClose) ? close - bearDivRefClose : na
+bearDivPriceMove = hasBearDiv and not na(bearDivRefClose) ? high - bearDivRefClose : na
 bearDivRsiMove = hasBearDiv and not na(bearDivRefRsi) ? osc - bearDivRefRsi : na
 bearDivAtrNeed = hasBearDiv and not na(bearDivRefAtr) ? bearDivRefAtr * atrMultiplier : na
 
@@ -428,19 +454,19 @@ bearCandleBars = ta.barssince(bearCandleTrigger)
 hasBullCandle = bullCandleBars >= 0 and bullCandleBars <= setupLookbackBars
 hasBearCandle = bearCandleBars >= 0 and bearCandleBars <= setupLookbackBars
 
-bullCandleRefClose = ta.valuewhen(bullCandleTrigger, close, 0)
+bullCandleRefClose = ta.valuewhen(bullCandleTrigger, candleBodyLow, 0)
 bullCandleRefRsi = ta.valuewhen(bullCandleTrigger, osc, 0)
 bullCandleRefAtr = ta.valuewhen(bullCandleTrigger, atr, 0)
 
-bearCandleRefClose = ta.valuewhen(bearCandleTrigger, close, 0)
+bearCandleRefClose = ta.valuewhen(bearCandleTrigger, candleBodyHigh, 0)
 bearCandleRefRsi = ta.valuewhen(bearCandleTrigger, osc, 0)
 bearCandleRefAtr = ta.valuewhen(bearCandleTrigger, atr, 0)
 
-bullCandlePriceMove = hasBullCandle and not na(bullCandleRefClose) ? bullCandleRefClose - close : na
+bullCandlePriceMove = hasBullCandle and not na(bullCandleRefClose) ? bullCandleRefClose - low : na
 bullCandleRsiMove = hasBullCandle and not na(bullCandleRefRsi) ? bullCandleRefRsi - osc : na
 bullCandleAtrNeed = hasBullCandle and not na(bullCandleRefAtr) ? bullCandleRefAtr * atrMultiplier : na
 
-bearCandlePriceMove = hasBearCandle and not na(bearCandleRefClose) ? close - bearCandleRefClose : na
+bearCandlePriceMove = hasBearCandle and not na(bearCandleRefClose) ? high - bearCandleRefClose : na
 bearCandleRsiMove = hasBearCandle and not na(bearCandleRefRsi) ? osc - bearCandleRefRsi : na
 bearCandleAtrNeed = hasBearCandle and not na(bearCandleRefAtr) ? bearCandleRefAtr * atrMultiplier : na
 
@@ -450,8 +476,11 @@ bearBgFromCandle = hasBearCandle and bearCandleBars > 0 and not na(bearCandlePri
 // =========================
 // Background Filters
 // =========================
-bullBgCRSIFilter = not useCRSIFilterForBg or isOversold or (not na(db) and crsi <= db)
-bearBgCRSIFilter = not useCRSIFilterForBg or isOverbought or (not na(ub) and crsi >= ub)
+recentBullishAbnormalCandle = recentSignal(isBullishAbnormalCandle, setupLookbackBars)
+recentBearishAbnormalCandle = recentSignal(isBearishAbnormalCandle, setupLookbackBars)
+
+bullBgCRSIFilter = not useCRSIFilterForBg or recentBullishAbnormalCandle or isOversold or (not na(db) and crsi <= db)
+bearBgCRSIFilter = not useCRSIFilterForBg or recentBearishAbnormalCandle or isOverbought or (not na(ub) and crsi >= ub)
 
 bullBgVolumeFilter = not useVolumeFilterForBg or abnormalBuyVolume or bullSmartVolumeSignal or volume > ta.sma(volume, 20) * 1.05
 bearBgVolumeFilter = not useVolumeFilterForBg or abnormalSellVolume or bearSmartVolumeSignal or volume > ta.sma(volume, 20) * 1.05
@@ -482,104 +511,13 @@ finalBgColor = not na(bullBgColor) ? bullBgColor : not na(bearBgColor) ? bearBgC
 bgcolor(finalBgColor, title="강세/약세 배경 구간")
 
 // =========================
-// L/S Entry Signals
-// =========================
-bullVolumeRatioPass = sellVolume == 0 ? buyVolume > 0 : buyVolume >= sellVolume * entryVolumePressureRatio
-bearVolumeRatioPass = buyVolume == 0 ? sellVolume > 0 : sellVolume >= buyVolume * entryVolumePressureRatio
-
-helperBullGapContracting = recentSignal(helperBullishGap > 0 and helperBullishGap < helperBullishGap[helperGapFadeLookback], compositeLookbackBars)
-helperBearGapContracting = recentSignal(helperBearishGap > 0 and helperBearishGap < helperBearishGap[helperGapFadeLookback], compositeLookbackBars)
-
-candleBullSignal = recentSignal(isOversold or regularBullDiv or bullBgOn or bullBgStrong, setupValidityBars)
-candleBearSignal = recentSignal(isOverbought or regularBearDiv or bearBgOn or bearBgStrong, setupValidityBars)
-volumeBullSignal = recentSignal((vpBullAlignment and vpAbnormalVolume and bullVolumeRatioPass) or (bullSmartVolumeSignal and bullVolumeRatioPass), setupValidityBars)
-volumeBearSignal = recentSignal((vpBearAlignment and vpAbnormalVolume and bearVolumeRatioPass) or (bearSmartVolumeSignal and bearVolumeRatioPass), setupValidityBars)
-helperBullSignal = recentSignal(helperBullishSignal or (helperBullishGapBg and helperBullishRiskStrength >= math.max(helperMinStrength, 2) and helperBullishZonePass), setupValidityBars) and helperBullGapContracting
-helperBearSignal = recentSignal(helperBearishSignal or (helperBearishGapBg and helperBearishRiskStrength >= math.max(helperMinStrength, 2) and helperBearishZonePass), setupValidityBars) and helperBearGapContracting
-
-buyCompositeScore = (candleBullSignal ? 1 : 0) + (volumeBullSignal ? 1 : 0) + (helperBullSignal ? 1 : 0)
-sellCompositeScore = (candleBearSignal ? 1 : 0) + (volumeBearSignal ? 1 : 0) + (helperBearSignal ? 1 : 0)
-
-buySetupReady = buyCompositeScore >= compositeMinSignals and buyCompositeScore > sellCompositeScore
-sellSetupReady = sellCompositeScore >= compositeMinSignals and sellCompositeScore > buyCompositeScore
-
-buySetupStart = buySetupReady and not buySetupReady[1]
-sellSetupStart = sellSetupReady and not sellSetupReady[1]
-
-recentBuySetup = recentSignal(buySetupStart, compositeLookbackBars)
-recentSellSetup = recentSignal(sellSetupStart, compositeLookbackBars)
-
-var float buySetupLow = na
-var float sellSetupHigh = na
-var int lastLongSignalBar = na
-var int lastShortSignalBar = na
-
-if sellSetupReady
-    lastLongSignalBar := na
-
-if buySetupReady
-    lastShortSignalBar := na
-
-if buySetupStart
-    buySetupLow := low
-else if recentBuySetup
-    buySetupLow := na(buySetupLow) ? low : math.min(buySetupLow, low)
-else
-    buySetupLow := na
-
-if sellSetupStart
-    sellSetupHigh := high
-else if recentSellSetup
-    sellSetupHigh := na(sellSetupHigh) ? high : math.max(sellSetupHigh, high)
-else
-    sellSetupHigh := na
-
-longCrsiRecovery = ta.crossover(crsi, absoluteOS) or (crsi > crsi[1] and crsi[1] <= crsi[2] and crsi <= absoluteOS + 10)
-shortCrsiRecovery = ta.crossunder(crsi, absoluteOB) or (crsi < crsi[1] and crsi[1] >= crsi[2] and crsi >= absoluteOB - 10)
-
-longReversalBar = close > high[1]
-shortReversalBar = close < low[1]
-
-longEntryConfirm = longCrsiRecovery or longReversalBar
-shortEntryConfirm = shortCrsiRecovery or shortReversalBar
-
-longAntiChaseOk = (na(atr) or close <= ma + atr * entryMaxDistanceFromMAAtr) and (na(atr) or na(buySetupLow) or close - buySetupLow <= atr * entryMaxMoveFromSetupAtr)
-shortAntiChaseOk = (na(atr) or close >= ma - atr * entryMaxDistanceFromMAAtr) and (na(atr) or na(sellSetupHigh) or sellSetupHigh - close <= atr * entryMaxMoveFromSetupAtr)
-
-longCooldownActive = not na(lastLongSignalBar) and bar_index - lastLongSignalBar <= sameDirectionCooldownBars and not sellSetupReady
-shortCooldownActive = not na(lastShortSignalBar) and bar_index - lastShortSignalBar <= sameDirectionCooldownBars and not buySetupReady
-
-buyCompositeRaw = barstate.isconfirmed and recentBuySetup and longEntryConfirm and longAntiChaseOk and not sellSetupReady
-sellCompositeRaw = barstate.isconfirmed and recentSellSetup and shortEntryConfirm and shortAntiChaseOk and not buySetupReady
-
-buyCompositeSignal = buyCompositeRaw and not buyCompositeRaw[1] and not longCooldownActive
-sellCompositeSignal = sellCompositeRaw and not sellCompositeRaw[1] and not shortCooldownActive
-
-if buyCompositeSignal
-    lastLongSignalBar := bar_index
-    lastShortSignalBar := na
-
-if sellCompositeSignal
-    lastShortSignalBar := bar_index
-    lastLongSignalBar := na
-
-buyCompositeLabelY = na(atr) ? low : low - atr * compositeLabelAtrOffset
-sellCompositeLabelY = na(atr) ? high : high + atr * compositeLabelAtrOffset
-
-if showCompositeLabels and buyCompositeSignal
-    label.new(bar_index, buyCompositeLabelY, text="L", style=label.style_label_up, color=buyCompositeColor, textcolor=color.white, size=size.normal)
-
-if showCompositeLabels and sellCompositeSignal
-    label.new(bar_index, sellCompositeLabelY, text="S", style=label.style_label_down, color=sellCompositeColor, textcolor=color.white, size=size.normal)
-
-// =========================
 // Entry Alerts
 // =========================
-overboughtEnter = ta.crossover(crsi, absoluteOB)
-oversoldEnter = ta.crossunder(crsi, absoluteOS)
+overboughtEnter = isBearishAbnormalCandle and not (isBearishAbnormalCandle[1] == true)
+oversoldEnter = isBullishAbnormalCandle and not (isBullishAbnormalCandle[1] == true)
 
-repeatOverboughtAlert = barstate.isconfirmed and enableRepeatingOBOSAlert and isOverbought
-repeatOversoldAlert = barstate.isconfirmed and enableRepeatingOBOSAlert and isOversold
+repeatOverboughtAlert = barstate.isconfirmed and enableRepeatingOBOSAlert and isBearishAbnormalCandle
+repeatOversoldAlert = barstate.isconfirmed and enableRepeatingOBOSAlert and isBullishAbnormalCandle
 
 bullBgAlert = barstate.isconfirmed and bullBgOn
 bearBgAlert = barstate.isconfirmed and bearBgOn
@@ -601,8 +539,6 @@ alertcondition(bearBgOn, title="매도 감시 구간 진입", message="매도 �
 
 alertcondition(bullBgStrong, title="매수 감시 구간 강화", message="매수 감시 구간 강화")
 alertcondition(bearBgStrong, title="매도 감시 구간 강화", message="매도 감시 구간 강화")
-alertcondition(buyCompositeSignal, title="롱 진입 신호 - L", message="롱 진입 신호 - L")
-alertcondition(sellCompositeSignal, title="숏 진입 신호 - S", message="숏 진입 신호 - S")
 
 // =========================
 // Optional Plots
@@ -610,5 +546,8 @@ alertcondition(sellCompositeSignal, title="숏 진입 신호 - S", message="숏 
 plot(showCRSIPlots ? crsi : na, title="cRSI", color=color.fuchsia)
 plot(showCRSIPlots ? ub : na, title="cRSI 상단 밴드", color=color.new(color.red, 0))
 plot(showCRSIPlots ? db : na, title="cRSI 하단 밴드", color=color.new(color.aqua, 0))
+plot(showBBPlots ? bbBasis : na, title="비정상 캔들 볼린저 기준선", color=color.new(color.gray, 40))
+plot(showBBPlots ? bbUpper : na, title="비정상 캔들 볼린저 상단", color=color.new(overboughtColor, 35))
+plot(showBBPlots ? bbLower : na, title="비정상 캔들 볼린저 하단", color=color.new(oversoldColor, 35))
 plot(showVolumeMA ? avgBuyVolume : na, title="매수 거래량 평균선", color=buyVolumeMAColor)
 plot(showVolumeMA ? avgSellVolume : na, title="매도 거래량 평균선", color=sellVolumeMAColor)
