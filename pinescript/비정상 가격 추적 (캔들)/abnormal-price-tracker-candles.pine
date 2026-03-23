@@ -64,9 +64,12 @@ showBgZone = input.bool(true, title="배경 구간 표시")
 useDivForBg = input.bool(true, title="다이버전스 기준 배경 사용")
 useCandleForBg = input.bool(true, title="비정상 과매수/과매도 캔들 기준 배경 사용")
 setupLookbackBars = input.int(36, minval=1, title="기준 신호 이후 추적 봉 수")
+candleSetupLookbackBars = input.int(18, minval=1, title="비정상 캔들 기준 추적 봉 수")
 atrLength = input.int(14, minval=1, title="ATR 기간")
 atrMultiplier = input.float(0.8, minval=0.1, step=0.1, title="ATR 과도 이동 배수")
+candleAtrMultiplier = input.float(1.2, minval=0.1, step=0.1, title="비정상 캔들 기준 ATR 과도 이동 배수")
 strongBgAtrMultiplier = input.float(1.4, minval=1.0, step=0.1, title="강한 배경 판정 ATR 배수")
+candleStrongBgAtrMultiplier = input.float(1.8, minval=1.0, step=0.1, title="비정상 캔들 기준 강한 배경 ATR 배수")
 rsiMoveLimit = input.float(15.0, minval=0.1, step=0.1, title="RSI 추가 이동 제한값")
 useCRSIFilterForBg = input.bool(true, title="배경 구간에 cRSI 필터 적용")
 useVolumeFilterForBg = input.bool(false, title="배경 구간에 거래량 필터 적용")
@@ -464,8 +467,8 @@ bearBgFromDiv = hasBearDiv and bearDivBars > 0 and not na(bearDivPriceMove) and 
 bullCandleBars = ta.barssince(bullCandleTrigger)
 bearCandleBars = ta.barssince(bearCandleTrigger)
 
-hasBullCandle = bullCandleBars >= 0 and bullCandleBars <= setupLookbackBars
-hasBearCandle = bearCandleBars >= 0 and bearCandleBars <= setupLookbackBars
+hasBullCandle = bullCandleBars >= 0 and bullCandleBars <= candleSetupLookbackBars
+hasBearCandle = bearCandleBars >= 0 and bearCandleBars <= candleSetupLookbackBars
 
 bullCandleRefClose = ta.valuewhen(bullCandleTrigger, candleBodyLow, 0)
 bullCandleRefRsi = ta.valuewhen(bullCandleTrigger, osc, 0)
@@ -477,11 +480,11 @@ bearCandleRefAtr = ta.valuewhen(bearCandleTrigger, atr, 0)
 
 bullCandlePriceMove = hasBullCandle and not na(bullCandleRefClose) ? bullCandleRefClose - low : na
 bullCandleRsiMove = hasBullCandle and not na(bullCandleRefRsi) ? bullCandleRefRsi - osc : na
-bullCandleAtrNeed = hasBullCandle and not na(bullCandleRefAtr) ? bullCandleRefAtr * atrMultiplier : na
+bullCandleAtrNeed = hasBullCandle and not na(bullCandleRefAtr) ? bullCandleRefAtr * candleAtrMultiplier : na
 
 bearCandlePriceMove = hasBearCandle and not na(bearCandleRefClose) ? high - bearCandleRefClose : na
 bearCandleRsiMove = hasBearCandle and not na(bearCandleRefRsi) ? osc - bearCandleRefRsi : na
-bearCandleAtrNeed = hasBearCandle and not na(bearCandleRefAtr) ? bearCandleRefAtr * atrMultiplier : na
+bearCandleAtrNeed = hasBearCandle and not na(bearCandleRefAtr) ? bearCandleRefAtr * candleAtrMultiplier : na
 
 bullBgFromCandle = hasBullCandle and bullCandleBars > 0 and not na(bullCandlePriceMove) and not na(bullCandleRsiMove) and not na(bullCandleAtrNeed) and bullCandlePriceMove >= bullCandleAtrNeed and bullCandleRsiMove <= rsiMoveLimit
 bearBgFromCandle = hasBearCandle and bearCandleBars > 0 and not na(bearCandlePriceMove) and not na(bearCandleRsiMove) and not na(bearCandleAtrNeed) and bearCandlePriceMove >= bearCandleAtrNeed and bearCandleRsiMove <= rsiMoveLimit
@@ -489,8 +492,8 @@ bearBgFromCandle = hasBearCandle and bearCandleBars > 0 and not na(bearCandlePri
 // =========================
 // Background Filters
 // =========================
-recentBullishAbnormalCandle = recentSignal(isBullishAbnormalCandle, setupLookbackBars)
-recentBearishAbnormalCandle = recentSignal(isBearishAbnormalCandle, setupLookbackBars)
+recentBullishAbnormalCandle = recentSignal(isBullishAbnormalCandle, candleSetupLookbackBars)
+recentBearishAbnormalCandle = recentSignal(isBearishAbnormalCandle, candleSetupLookbackBars)
 
 bullBgCRSIFilter = not useCRSIFilterForBg or recentBullishAbnormalCandle or isOversold or (not na(db) and crsi <= db)
 bearBgCRSIFilter = not useCRSIFilterForBg or recentBearishAbnormalCandle or isOverbought or (not na(ub) and crsi >= ub)
@@ -507,9 +510,9 @@ bearBgFromCandle := bearBgFromCandle and bearBgCRSIFilter and bearBgVolumeFilter
 // Background Strength
 // =========================
 bullBgStrongByDiv = bullBgFromDiv and not na(bullDivPriceMove) and not na(bullDivRefAtr) and bullDivPriceMove >= bullDivRefAtr * strongBgAtrMultiplier
-bullBgStrongByCandle = bullBgFromCandle and not na(bullCandlePriceMove) and not na(bullCandleRefAtr) and bullCandlePriceMove >= bullCandleRefAtr * strongBgAtrMultiplier
+bullBgStrongByCandle = bullBgFromCandle and not na(bullCandlePriceMove) and not na(bullCandleRefAtr) and bullCandlePriceMove >= bullCandleRefAtr * candleStrongBgAtrMultiplier
 bearBgStrongByDiv = bearBgFromDiv and not na(bearDivPriceMove) and not na(bearDivRefAtr) and bearDivPriceMove >= bearDivRefAtr * strongBgAtrMultiplier
-bearBgStrongByCandle = bearBgFromCandle and not na(bearCandlePriceMove) and not na(bearCandleRefAtr) and bearCandlePriceMove >= bearCandleRefAtr * strongBgAtrMultiplier
+bearBgStrongByCandle = bearBgFromCandle and not na(bearCandlePriceMove) and not na(bearCandleRefAtr) and bearCandlePriceMove >= bearCandleRefAtr * candleStrongBgAtrMultiplier
 
 bullBgStrong = (bullBgFromDiv and bullBgFromCandle) or bullBgStrongByDiv or bullBgStrongByCandle
 bearBgStrong = (bearBgFromDiv and bearBgFromCandle) or bearBgStrongByDiv or bearBgStrongByCandle
