@@ -125,6 +125,8 @@ lsRequireTrendAlignment = input.bool(false, title="MA 정렬 필수", group=lsSi
 lsRequireVolumeConfirm = input.bool(false, title="거래량 확인 필수", group=lsSignalGroup)
 lsStrongBgBonusLookback = input.int(3, minval=1, maxval=20, title="강한 배경 근접 봉 수", group=lsSignalGroup)
 lsStrongBgBonusScore = input.int(2, minval=0, maxval=5, title="강한 배경 가산점", group=lsSignalGroup)
+lsRequirePreviousBg = input.bool(true, title="이전 봉 배경 확인 필수", group=lsSignalGroup)
+lsRequireOppositeBgReset = input.bool(true, title="반대 배경 전환 후 방향 전환", group=lsSignalGroup)
 
 referenceGroup = "기준봉"
 showReferenceCandleZone = input.bool(true, title="기준봉 존 표시", group=referenceGroup)
@@ -647,19 +649,33 @@ bearEntryCandidate = bearSetupReady and bearConfirmReady and bearTotalScore >= l
 
 var int lastLongSignalBar = na
 var int lastShortSignalBar = na
+var bool bearBgSeenSinceLong = true
+var bool bullBgSeenSinceShort = true
+
+if bullBgOn
+    bullBgSeenSinceShort := true
+
+if bearBgOn
+    bearBgSeenSinceLong := true
 
 canLongSignal = na(lastLongSignalBar) or bar_index - lastLongSignalBar > lsCooldownBars
 canShortSignal = na(lastShortSignalBar) or bar_index - lastShortSignalBar > lsCooldownBars
+prevBullBgReady = not lsRequirePreviousBg or bullBgOn[1]
+prevBearBgReady = not lsRequirePreviousBg or bearBgOn[1]
+longDirectionResetReady = not lsRequireOppositeBgReset or na(lastShortSignalBar) or bullBgSeenSinceShort
+shortDirectionResetReady = not lsRequireOppositeBgReset or na(lastLongSignalBar) or bearBgSeenSinceLong
 
 signalBarReady = realtimeLSSignals or barstate.isconfirmed
-longSignal = signalBarReady and canLongSignal and bullEntryCandidate and not (bullEntryCandidate[1] == true)
-shortSignal = signalBarReady and canShortSignal and bearEntryCandidate and not (bearEntryCandidate[1] == true)
+longSignal = signalBarReady and canLongSignal and prevBullBgReady and longDirectionResetReady and bullEntryCandidate and not (bullEntryCandidate[1] == true)
+shortSignal = signalBarReady and canShortSignal and prevBearBgReady and shortDirectionResetReady and bearEntryCandidate and not (bearEntryCandidate[1] == true)
 
 if longSignal and (barstate.isconfirmed or not realtimeLSSignals)
     lastLongSignalBar := bar_index
+    bearBgSeenSinceLong := false
 
 if shortSignal and (barstate.isconfirmed or not realtimeLSSignals)
     lastShortSignalBar := bar_index
+    bullBgSeenSinceShort := false
 
 effectiveStrongScore = math.max(lsStrongScore, lsMinScore)
 strongLongSignal = longSignal and bullTotalScore >= effectiveStrongScore
