@@ -79,7 +79,7 @@ bullBgStrongColor = input.color(color.blue, title="강한 강세 배경 색상")
 bearBgBaseColor = input.color(color.orange, title="약세 배경 색상")
 bearBgStrongColor = input.color(color.red, title="강한 약세 배경 색상")
 
-bgTransparency = input.int(62, minval=0, maxval=100, title="배경 투명도")
+bgTransparency = input.int(70, minval=0, maxval=100, title="배경 투명도")
 
 // =========================
 // Volume Pressure Tracker Inputs
