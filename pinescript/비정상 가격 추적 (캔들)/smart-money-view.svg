@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1260" viewBox="0 0 1200 1260" role="img" aria-labelledby="title desc">
   <title id="title">비정상 가격 추적 캔들 세력 관점 다이어그램</title>
-  <desc id="desc">비정상 캔들, 다이버전스, Strong 신호, 스윕 다이아몬드 규칙을 요약한 카드형 이미지</desc>
+  <desc id="desc">비정상 캔들, 다이버전스, 진입 후보 신호, 유동성 스윕 다이아몬드 규칙을 요약한 카드형 이미지</desc>
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#f7fbff"/>
@@ -22,7 +22,7 @@
   <rect x="24" y="24" width="1152" height="1212" rx="28" fill="url(#bg)" stroke="#d7e0ea"/>
 
   <text x="60" y="86" class="title">비정상 가격 추적 (캔들) · 세력 관점</text>
-  <text x="60" y="118" class="subtitle">자리 확인은 비정상 캔들, 효율 저하는 다이버전스, 진입 후보는 Strong, 재확인은 Sweep 다이아몬드로 읽습니다.</text>
+  <text x="60" y="118" class="subtitle">자리 확인은 비정상 캔들, 효율 저하는 다이버전스, 첫 진입 판단은 롱/숏 진입 후보, 재확인은 유동성 스윕 다이아몬드로 읽습니다.</text>
 
   <rect x="60" y="154" width="1080" height="250" rx="24" fill="#fff4ef" stroke="#efc9c0"/>
   <text x="92" y="192" class="label">OVERBOUGHT / BEARISH</text>
@@ -39,7 +39,7 @@
   <rect x="284" y="270" width="10" height="76" rx="5" fill="#ff5959"/>
   <text x="372" y="274" class="body">해석 포인트</text>
   <text x="372" y="304" class="small">전고점 위, 저항 돌파 직후라면 위 스윕과 분산 후보로 먼저 봅니다.</text>
-  <text x="372" y="328" class="small">이후 약세 다이버전스, 약세 배경, Strong Short 점수 누적 여부를 확인합니다.</text>
+  <text x="372" y="328" class="small">이후 약세 다이버전스, 약세 배경, 숏 진입 후보 점수 누적 여부를 확인합니다.</text>
   <text x="372" y="364" class="body">실전 메모</text>
   <text x="372" y="390" class="small">무조건 숏이 아니라, 돌파 수용인지 마지막 추격 유도인지 구분하는 자리입니다.</text>
 
@@ -58,43 +58,47 @@
   <rect x="284" y="546" width="10" height="76" rx="5" fill="#2f7ef7"/>
   <text x="372" y="550" class="body">해석 포인트</text>
   <text x="372" y="580" class="small">전저점 아래, 지지 이탈 직후라면 아래 스윕과 투매 흡수 후보로 먼저 봅니다.</text>
-  <text x="372" y="604" class="small">이후 강세 다이버전스, 강세 배경, Strong Long 점수 누적 여부를 확인합니다.</text>
+  <text x="372" y="604" class="small">이후 강세 다이버전스, 강세 배경, 롱 진입 후보 점수 누적 여부를 확인합니다.</text>
   <text x="372" y="640" class="body">실전 메모</text>
   <text x="372" y="666" class="small">무조건 롱이 아니라, 저가 회복이 실제 수요인지 먼저 확인하는 자리입니다.</text>
 
   <rect x="60" y="706" width="1080" height="280" rx="24" fill="#ffffff" stroke="#d7e0ea"/>
   <text x="92" y="744" class="label">VISUAL RULES</text>
-  <text x="92" y="778" class="cardTitle">Strong과 Sweep은 색과 박스를 분리해서 읽습니다</text>
+  <text x="92" y="778" class="cardTitle">진입 후보와 유동성 스윕은 색과 박스를 분리해서 읽습니다</text>
 
   <rect x="92" y="808" width="490" height="66" rx="16" fill="#f2fff5" stroke="#c9e6d0"/>
   <circle cx="122" cy="841" r="8" fill="#009100"/>
   <rect x="146" y="824" width="82" height="30" rx="8" fill="#009100" opacity="0.22" stroke="#009100" stroke-width="2"/>
-  <text x="250" y="842" class="small">Strong Long: 어두운 녹색 원 + 어두운 녹색 박스</text>
+  <text x="250" y="842" class="small">롱 진입 후보: 어두운 녹색 원 + 어두운 녹색 박스</text>
 
   <rect x="618" y="808" width="490" height="66" rx="16" fill="#fff3f4" stroke="#efcbcf"/>
   <circle cx="648" cy="841" r="8" fill="#d21919"/>
   <rect x="672" y="824" width="82" height="30" rx="8" fill="#d21919" opacity="0.20" stroke="#d21919" stroke-width="2"/>
-  <text x="776" y="842" class="small">Strong Short: 어두운 빨강 원 + 어두운 빨강 박스</text>
+  <text x="776" y="842" class="small">숏 진입 후보: 어두운 빨강 원 + 어두운 빨강 박스</text>
 
-  <rect x="92" y="892" width="490" height="66" rx="16" fill="#f1fff4" stroke="#cde9d1"/>
+  <rect x="92" y="892" width="490" height="98" rx="16" fill="#f1fff4" stroke="#cde9d1"/>
   <rect x="116" y="908" width="18" height="32" rx="5" fill="#00ff00"/>
   <polygon points="170,906 182,924 158,924" fill="#00ff00"/>
   <rect x="208" y="910" width="86" height="28" rx="8" fill="#00ff00" opacity="0.18" stroke="#00ff00" stroke-width="2"/>
-  <text x="352" y="926" class="small">Bull Sweep: 밝은 초록 몸통, 다이아몬드, 스윕 박스</text>
-  <text x="352" y="946" class="small">조건: 다음 양봉 + buy 우위 + 이전 스윕 거래량의 50% 이상</text>
+  <text x="320" y="922" class="small">강세 스윕: 밝은 초록 몸통,</text>
+  <text x="320" y="942" class="small">다이아몬드, 스윕 박스</text>
+  <text x="320" y="962" class="small">조건: 다음 양봉 + buy 우위 +</text>
+  <text x="320" y="982" class="small">이전 스윕 거래량의 50% 이상</text>
 
-  <rect x="618" y="892" width="490" height="66" rx="16" fill="#fff3f3" stroke="#f0cece"/>
+  <rect x="618" y="892" width="490" height="98" rx="16" fill="#fff3f3" stroke="#f0cece"/>
   <rect x="642" y="908" width="18" height="32" rx="5" fill="#ff0000"/>
   <polygon points="696,940 708,922 684,922" fill="#ff0000"/>
   <rect x="734" y="910" width="86" height="28" rx="8" fill="#ff0000" opacity="0.16" stroke="#ff0000" stroke-width="2"/>
-  <text x="878" y="926" class="small">Bear Sweep: 밝은 빨강 몸통, 다이아몬드, 스윕 박스</text>
-  <text x="878" y="946" class="small">조건: 다음 음봉 + sell 우위 + 이전 스윕 거래량의 50% 이상</text>
+  <text x="846" y="922" class="small">약세 스윕: 밝은 빨강 몸통,</text>
+  <text x="846" y="942" class="small">다이아몬드, 스윕 박스</text>
+  <text x="846" y="962" class="small">조건: 다음 음봉 + sell 우위 +</text>
+  <text x="846" y="982" class="small">이전 스윕 거래량의 50% 이상</text>
 
   <rect x="60" y="1012" width="1080" height="184" rx="24" fill="#fffdf8" stroke="#e6dccb"/>
   <text x="92" y="1050" class="label">ENTRY STACK</text>
   <text x="92" y="1084" class="cardTitle">최종 판단은 자리 + 체결 + 후속 확인 순서입니다</text>
   <text x="92" y="1120" class="small">1. 비정상 캔들과 다이버전스로 자리 확인</text>
-  <text x="92" y="1144" class="small">2. ATR 배경과 Strong 신호로 첫 진입 후보 확인</text>
+  <text x="92" y="1144" class="small">2. ATR 배경과 진입 후보 신호로 첫 진입 후보 확인</text>
   <text x="92" y="1168" class="small">3. 박스 스윕 뒤 밝은 다이아몬드가 나오면 재확인 신호로 해석</text>
-  <text x="92" y="1194" class="note">핵심: Strong은 첫 후보, Sweep 다이아몬드는 그 후보를 한 번 더 확인하는 후속 신호입니다.</text>
+  <text x="92" y="1194" class="note">핵심: 진입 후보는 첫 후보, 유동성 스윕 다이아몬드는 그 후보를 한 번 더 확인하는 후속 신호입니다.</text>
 </svg>

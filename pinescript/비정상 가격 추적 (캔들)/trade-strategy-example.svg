@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1460" viewBox="0 0 1200 1460" role="img" aria-labelledby="title desc">
   <title id="title">비정상 가격 추적 캔들 실전 전략 예시</title>
-  <desc id="desc">Strong Long/Short와 스윕 다이아몬드를 이용한 롱숏 전략 예시</desc>
+  <desc id="desc">롱/숏 진입 후보와 스윕 다이아몬드를 이용한 롱숏 전략 예시</desc>
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#f8fbff"/>
@@ -22,11 +22,11 @@
   <rect x="24" y="24" width="1152" height="1412" rx="28" fill="url(#bg)" stroke="#d6e0ea"/>
 
   <text x="60" y="86" class="title">비정상 가격 추적 (캔들) · 실전 전략 예시</text>
-  <text x="60" y="118" class="subtitle">Strong은 첫 진입 후보, 다이아몬드는 스윕 다음 봉 재확인 신호로 보는 구조입니다.</text>
+  <text x="60" y="118" class="subtitle">롱/숏 진입 후보는 첫 진입 후보, 다이아몬드는 스윕 다음 봉 재확인 신호로 보는 구조입니다.</text>
 
   <rect x="60" y="152" width="1080" height="560" rx="26" fill="#eef8ff" stroke="#c7dff5"/>
   <text x="92" y="190" class="label">LONG EXAMPLE</text>
-  <text x="92" y="224" class="panelTitle">과매도 흡수 이후 Strong Long, 그리고 하단 스윕 재확인</text>
+  <text x="92" y="224" class="panelTitle">과매도 흡수 이후 롱 진입 후보, 그리고 하단 스윕 재확인</text>
 
   <rect x="92" y="246" width="540" height="238" rx="18" fill="#ffffff" stroke="#d8e3ed"/>
   <rect x="122" y="280" width="170" height="160" rx="16" fill="#e1f0ff"/>
@@ -53,11 +53,11 @@
   <rect x="664" y="246" width="444" height="238" rx="18" fill="#ffffff" stroke="#d8e3ed"/>
   <text x="694" y="282" class="body">롱 해석</text>
   <text x="694" y="314" class="small">1. 하늘 비정상 캔들과 강세 다이버전스로 저점 흡수 자리 확인</text>
-  <text x="694" y="338" class="small">2. 강세 배경 + 총 거래량 &gt; 10MA + buy 우위가 겹치면 Strong Long</text>
-  <text x="694" y="362" class="small">3. Strong 박스 하단을 스윕한 뒤, 다음 양봉이 밝은 초록 다이아몬드면 재확인</text>
+  <text x="694" y="338" class="small">2. 강세 배경 + 총 거래량 &gt; 10MA + buy 우위가 겹치면 롱 진입 후보</text>
+  <text x="694" y="362" class="small">3. 롱 진입 후보 박스 하단을 스윕한 뒤, 다음 양봉이 밝은 초록 다이아몬드면 재확인</text>
   <text x="694" y="386" class="small">4. 다이아몬드는 buy &gt; sell 이고 거래량이 이전 스윕 봉의 50% 이상일 때만 확정</text>
   <text x="694" y="420" class="body">무효화</text>
-  <text x="694" y="452" class="small">Strong 박스와 스윕 박스를 모두 잃고 안착하면 롱 시나리오를 버립니다.</text>
+  <text x="694" y="452" class="small">롱 진입 후보 박스와 스윕 박스를 모두 잃고 안착하면 롱 시나리오를 버립니다.</text>
 
   <rect x="92" y="518" width="1016" height="132" rx="18" fill="#ffffff" stroke="#d3e4ef"/>
   <text x="122" y="554" class="body">롱 요약</text>
@@ -66,7 +66,7 @@
 
   <rect x="60" y="738" width="1080" height="560" rx="26" fill="#fff1f3" stroke="#efc5cb"/>
   <text x="92" y="776" class="label">SHORT EXAMPLE</text>
-  <text x="92" y="810" class="panelTitle">과매수 분산 이후 Strong Short + 상단 스윕 재확인</text>
+  <text x="92" y="810" class="panelTitle">과매수 분산 이후 숏 진입 후보 + 상단 스윕 재확인</text>
 
   <rect x="92" y="832" width="540" height="238" rx="18" fill="#ffffff" stroke="#d8e3ed"/>
   <rect x="378" y="864" width="170" height="160" rx="16" fill="#ffe5e5"/>
@@ -93,11 +93,11 @@
   <rect x="664" y="832" width="444" height="238" rx="18" fill="#ffffff" stroke="#d8e3ed"/>
   <text x="694" y="868" class="body">숏 해석</text>
   <text x="694" y="900" class="small">1. 주황 비정상 캔들과 약세 다이버전스로 상단 분산 자리 확인</text>
-  <text x="694" y="924" class="small">2. 약세 배경 + 총 거래량 &gt; 10MA + sell 우위가 겹치면 Strong Short</text>
-  <text x="694" y="948" class="small">3. Strong 박스 상단을 스윕한 뒤, 다음 음봉이 밝은 빨강 다이아몬드면 재확인</text>
+  <text x="694" y="924" class="small">2. 약세 배경 + 총 거래량 &gt; 10MA + sell 우위가 겹치면 숏 진입 후보</text>
+  <text x="694" y="948" class="small">3. 숏 진입 후보 박스 상단을 스윕한 뒤, 다음 음봉이 밝은 빨강 다이아몬드면 재확인</text>
   <text x="694" y="972" class="small">4. 다이아몬드는 sell &gt; buy 이고 거래량이 이전 스윕 봉의 50% 이상일 때만 확정</text>
   <text x="694" y="1006" class="body">무효화</text>
-  <text x="694" y="1038" class="small">Strong 박스와 스윕 박스를 모두 회복해 안착하면 숏 시나리오를 버립니다.</text>
+  <text x="694" y="1038" class="small">숏 진입 후보 박스와 스윕 박스를 모두 회복해 안착하면 숏 시나리오를 버립니다.</text>
 
   <rect x="92" y="1104" width="1016" height="132" rx="18" fill="#ffffff" stroke="#ecd2d6"/>
   <text x="122" y="1140" class="body">숏 요약</text>
