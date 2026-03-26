@@ -6,8 +6,8 @@ indicator("Abnormal-Price-Tracker-Candles", overlay=true, format=format.volume, 
 // =========================
 maLength = input.int(9, title="이동평균 기간", minval=1)
 src = input.source(close, title="평균 기준 가격")
-colorAbove = input.color(color.rgb(144, 238, 144), title="종가가 이동평균선 위일 때 색상")
-colorBelow = input.color(color.rgb(255, 160, 160), title="종가가 이동평균선 아래일 때 색상")
+colorAbove = input.color(color.rgb(0, 255, 0), title="종가가 이동평균선 위일 때 색상")
+colorBelow = input.color(color.rgb(255, 0, 0), title="종가가 이동평균선 아래일 때 색상")
 lineWidth = input.int(1, title="이동평균선 두께", minval=1, maxval=5)
 
 // =========================
@@ -793,8 +793,8 @@ strongShortSignalColor = strongShortSignalColorInput
 bullSweepSignalColor = bullSweepSignalColorInput
 bearSweepSignalColor = bearSweepSignalColorInput
 
-plotshape(showStrongLSSignals and displayStrongLongSignal, title="3단계 롱 진입 후보 - 첫 진입 신호", style=shape.circle, location=location.belowbar, color=strongLongSignalColor, size=size.tiny)
-plotshape(showStrongLSSignals and displayStrongShortSignal, title="3단계 숏 진입 후보 - 첫 진입 신호", style=shape.circle, location=location.abovebar, color=strongShortSignalColor, size=size.tiny)
+plotshape(showStrongLSSignals and displayStrongLongSignal, title="3단계 롱 진입 후보 (첫 진입 신호) - 종합 기준 통과", style=shape.circle, location=location.belowbar, color=strongLongSignalColor, size=size.tiny)
+plotshape(showStrongLSSignals and displayStrongShortSignal, title="3단계 숏 진입 후보 (첫 진입 신호) - 종합 기준 통과", style=shape.circle, location=location.abovebar, color=strongShortSignalColor, size=size.tiny)
 
 confirmedStrongLongSignal = barstate.isconfirmed and displayStrongLongSignal
 confirmedStrongShortSignal = barstate.isconfirmed and displayStrongShortSignal
@@ -854,8 +854,8 @@ bearSweepFollowThroughVolumeReady = volume >= nz(volume[1]) * lsSweepConfirmVolu
 confirmedBullSweepFollowThrough = barstate.isconfirmed and bullLiquiditySweep[1] and close > open and buyVolume > sellVolume and bullSweepFollowThroughVolumeReady
 confirmedBearSweepFollowThrough = barstate.isconfirmed and bearLiquiditySweep[1] and close < open and sellVolume > buyVolume and bearSweepFollowThroughVolumeReady
 
-plotshape(showLiquiditySweepSignals and confirmedBullSweepFollowThrough, title="4단계 롱 확인 - 하단 유동성 스윕", style=shape.diamond, location=location.belowbar, color=bullSweepSignalColor, size=size.tiny)
-plotshape(showLiquiditySweepSignals and confirmedBearSweepFollowThrough, title="4단계 숏 확인 - 상단 유동성 스윕", style=shape.diamond, location=location.abovebar, color=bearSweepSignalColor, size=size.tiny)
+plotshape(showLiquiditySweepSignals and confirmedBullSweepFollowThrough, title="4단계 롱 확인 (하단 유동성 스윕) - 확인 봉", style=shape.diamond, location=location.belowbar, color=bullSweepSignalColor, size=size.tiny)
+plotshape(showLiquiditySweepSignals and confirmedBearSweepFollowThrough, title="4단계 숏 확인 (상단 유동성 스윕) - 확인 봉", style=shape.diamond, location=location.abovebar, color=bearSweepSignalColor, size=size.tiny)
 
 if showLiquiditySweepSignals and confirmedBullSweepFollowThrough and showReferenceCandleZone
     bullSweepReferenceIndex = bar_index
@@ -892,24 +892,24 @@ bearBgAlert = barstate.isconfirmed and bearBgOn
 bullBgStrongAlert = barstate.isconfirmed and bullBgStrong
 bearBgStrongAlert = barstate.isconfirmed and bearBgStrong
 
-alertcondition(oversoldEnter, title="0단계 롱 자리 - 과매도 시작", message="0단계 롱 자리 - 과매도 시작")
-alertcondition(overboughtEnter, title="0단계 숏 자리 - 과매수 시작", message="0단계 숏 자리 - 과매수 시작")
+alertcondition(oversoldEnter, title="0단계 롱 자리 (과매도 시작) - 하단 이탈", message="0단계 롱 자리 (과매도 시작) - 하단 이탈")
+alertcondition(overboughtEnter, title="0단계 숏 자리 (과매수 시작) - 상단 이탈", message="0단계 숏 자리 (과매수 시작) - 상단 이탈")
 
-alertcondition(repeatOversoldAlert, title="0단계 롱 자리 유지 - 과매도 계속", message="0단계 롱 자리 유지 - 과매도 계속")
-alertcondition(repeatOverboughtAlert, title="0단계 숏 자리 유지 - 과매수 계속", message="0단계 숏 자리 유지 - 과매수 계속")
+alertcondition(repeatOversoldAlert, title="0단계 롱 자리 유지 (과매도 계속) - 하단 유지", message="0단계 롱 자리 유지 (과매도 계속) - 하단 유지")
+alertcondition(repeatOverboughtAlert, title="0단계 숏 자리 유지 (과매수 계속) - 상단 유지", message="0단계 숏 자리 유지 (과매수 계속) - 상단 유지")
 
-alertcondition(regularBullDiv, title="1단계 롱 힌트 - 하락 힘 약해짐", message="1단계 롱 힌트 - 하락 힘 약해짐")
-alertcondition(regularBearDiv, title="1단계 숏 힌트 - 상승 힘 약해짐", message="1단계 숏 힌트 - 상승 힘 약해짐")
+alertcondition(regularBullDiv, title="1단계 롱 힌트 (하락 힘 약해짐) - 강세 다이버전스", message="1단계 롱 힌트 (하락 힘 약해짐) - 강세 다이버전스")
+alertcondition(regularBearDiv, title="1단계 숏 힌트 (상승 힘 약해짐) - 약세 다이버전스", message="1단계 숏 힌트 (상승 힘 약해짐) - 약세 다이버전스")
 
-alertcondition(bullBgAlert, title="2단계 롱 감시 - 매수 배경 진입", message="2단계 롱 감시 - 매수 배경 진입")
-alertcondition(bearBgAlert, title="2단계 숏 감시 - 매도 배경 진입", message="2단계 숏 감시 - 매도 배경 진입")
+alertcondition(bullBgAlert, title="2단계 롱 감시 (매수 배경 진입) - ATR 배경", message="2단계 롱 감시 (매수 배경 진입) - ATR 배경")
+alertcondition(bearBgAlert, title="2단계 숏 감시 (매도 배경 진입) - ATR 배경", message="2단계 숏 감시 (매도 배경 진입) - ATR 배경")
 
-alertcondition(bullBgStrongAlert, title="2단계 롱 감시 강화 - 매수 배경 강화", message="2단계 롱 감시 강화 - 매수 배경 강화")
-alertcondition(bearBgStrongAlert, title="2단계 숏 감시 강화 - 매도 배경 강화", message="2단계 숏 감시 강화 - 매도 배경 강화")
-alertcondition(strongLongSignal, title="3단계 롱 진입 후보 - 첫 진입 신호", message="3단계 롱 진입 후보 - 첫 진입 신호")
-alertcondition(strongShortSignal, title="3단계 숏 진입 후보 - 첫 진입 신호", message="3단계 숏 진입 후보 - 첫 진입 신호")
-alertcondition(confirmedBullSweepFollowThrough, title="4단계 롱 확인 - 하단 유동성 스윕", message="4단계 롱 확인 - 하단 유동성 스윕")
-alertcondition(confirmedBearSweepFollowThrough, title="4단계 숏 확인 - 상단 유동성 스윕", message="4단계 숏 확인 - 상단 유동성 스윕")
+alertcondition(bullBgStrongAlert, title="2단계 롱 감시 강화 (매수 배경 강화) - ATR 확장", message="2단계 롱 감시 강화 (매수 배경 강화) - ATR 확장")
+alertcondition(bearBgStrongAlert, title="2단계 숏 감시 강화 (매도 배경 강화) - ATR 확장", message="2단계 숏 감시 강화 (매도 배경 강화) - ATR 확장")
+alertcondition(strongLongSignal, title="3단계 롱 진입 후보 (첫 진입 신호) - 종합 기준 통과", message="3단계 롱 진입 후보 (첫 진입 신호) - 종합 기준 통과")
+alertcondition(strongShortSignal, title="3단계 숏 진입 후보 (첫 진입 신호) - 종합 기준 통과", message="3단계 숏 진입 후보 (첫 진입 신호) - 종합 기준 통과")
+alertcondition(confirmedBullSweepFollowThrough, title="4단계 롱 확인 (하단 유동성 스윕) - 확인 봉", message="4단계 롱 확인 (하단 유동성 스윕) - 확인 봉")
+alertcondition(confirmedBearSweepFollowThrough, title="4단계 숏 확인 (상단 유동성 스윕) - 확인 봉", message="4단계 숏 확인 (상단 유동성 스윕) - 확인 봉")
 
 // =========================
 // Optional Plots
