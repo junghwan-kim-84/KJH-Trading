@@ -6,8 +6,8 @@ indicator("Abnormal-Price-Tracker-Candles", overlay=true, format=format.volume, 
 // =========================
 maLength = input.int(9, title="이동평균 기간", minval=1)
 src = input.source(close, title="평균 기준 가격")
-colorAbove = input.color(color.rgb(0, 255, 0), title="종가가 이동평균선 위일 때 색상")
-colorBelow = input.color(color.rgb(255, 0, 0), title="종가가 이동평균선 아래일 때 색상")
+maUpColor = input.color(color.rgb(0, 255, 0), title="이동평균 상승 색상")
+maDownColor = input.color(color.rgb(255, 0, 0), title="이동평균 하락 색상")
 lineWidth = input.int(1, title="이동평균선 두께", minval=1, maxval=5)
 
 // =========================
@@ -200,7 +200,10 @@ bearSignalBoxBottom(offset) =>
 // Moving Average
 // =========================
 ma = ta.sma(src, maLength)
-maColor = close >= ma ? colorAbove : colorBelow
+maTrendUp = ma > ma[1]
+maTrendDown = ma < ma[1]
+var color maColor = maUpColor
+maColor := maTrendUp ? maUpColor : maTrendDown ? maDownColor : (na(maColor[1]) ? maUpColor : maColor[1])
 plot(ma, title="이동평균선", color=maColor, linewidth=lineWidth, display=display.all - display.price_scale)
 
 var box[] referenceBoxes = array.new_box()
