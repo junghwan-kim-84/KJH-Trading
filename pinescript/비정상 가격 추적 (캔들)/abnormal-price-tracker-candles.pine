@@ -2,15 +2,6 @@
 indicator("Abnormal-Price-Tracker-Candles", overlay=true, format=format.volume, precision=0, max_labels_count=500, max_boxes_count=500)
 
 // =========================
-// MA Inputs
-// =========================
-maLength = input.int(9, title="이동평균 기간", minval=1)
-src = input.source(close, title="평균 기준 가격")
-maUpColor = input.color(color.rgb(0, 255, 0), title="이동평균 상승 색상")
-maDownColor = input.color(color.rgb(255, 0, 0), title="이동평균 하락 색상")
-lineWidth = input.int(1, title="이동평균선 두께", minval=1, maxval=5)
-
-// =========================
 // cRSI Inputs
 // =========================
 domCycle = input.int(20, minval=10, title="cRSI Dominant Cycle Length")
@@ -39,7 +30,6 @@ showBBPlots = input.bool(false, title="비정상 캔들 볼린저 밴드 표시"
 enableSmartVolume = input.bool(true, title="스마트 비정상 거래량 사용")
 abnormalVolLookback = input.int(5, minval=1, title="매수/매도 거래량 평균 기준 봉 수")
 abnormalVolMultiplier = input.float(0.4, minval=0.0, title="비정상 거래량 배수 기준")
-useMAFilterForVolume = input.bool(true, title="거래량 시그널에 MA 필터 적용")
 useCRSIFilterForVolume = input.bool(false, title="거래량 시그널에 cRSI 필터 적용")
 showVolumeMA = input.bool(false, title="매수/매도 거래량 평균선 표시")
 buyVolumeMAColor = input.color(color.teal, title="매수 거래량 평균선 색상")
@@ -122,7 +112,6 @@ lsSetupLookback = input.int(12, minval=1, title="세팅 유효 봉 수", group=l
 lsMinScore = input.int(8, minval=1, maxval=15, title="최소 진입 점수", group=lsSignalGroup)
 lsStrongScore = input.int(10, minval=1, maxval=15, title="진입 후보 점수", group=lsSignalGroup)
 lsCooldownBars = input.int(8, minval=0, title="동일 방향 신호 쿨다운", group=lsSignalGroup)
-lsRequireTrendAlignment = input.bool(false, title="MA 정렬 필수", group=lsSignalGroup)
 lsRequireVolumeConfirm = input.bool(false, title="거래량 확인 필수", group=lsSignalGroup)
 lsRequireOrderVolumeAvg = input.bool(true, title="총 거래량 MA 미만 신호 차단", group=lsSignalGroup)
 lsOrderVolumeAvgLength = input.int(10, minval=1, title="총 거래량 MA 기준 봉 수", group=lsSignalGroup)
@@ -171,10 +160,7 @@ reportBackgroundTransparency = input.int(78, minval=0, maxval=100, title="리포
 reportBullColor = input.color(color.rgb(0, 170, 90), title="리포트 롱 강조 색상", group=reportGroup)
 reportBearColor = input.color(color.rgb(210, 70, 70), title="리포트 숏 강조 색상", group=reportGroup)
 reportNeutralColor = input.color(color.silver, title="리포트 중립 색상", group=reportGroup)
-reportMAFastLength = input.int(20, minval=1, title="리포트 이평선 단기 길이", group=reportGroup)
-reportMAMidLength = input.int(50, minval=1, title="리포트 이평선 기준 길이", group=reportGroup)
-reportMASlowLength = input.int(100, minval=1, title="리포트 이평선 중기 길이", group=reportGroup)
-reportMABaseLength = input.int(200, minval=1, title="리포트 이평선 장기 길이", group=reportGroup)
+reportStatusLookbackBars = input.int(20, minval=1, title="리포트 시그널 체크 봉 수", group=reportGroup)
 
 performanceGroup = "성능 / 반응 속도"
 useFastCRSIBands = input.bool(true, title="빠른 cRSI 밴드 계산 사용", group=performanceGroup)
@@ -228,44 +214,11 @@ tableTextSize(sizeInput) =>
         "보통" => size.normal
         => size.small
 
-formatScoreSummary(signalScore, confirmScore) =>
-    "신호 " + str.tostring(signalScore) + " | 확인 " + str.tostring(confirmScore)
+reportStatusText(isOn) =>
+    isOn ? "ON" : "OFF"
 
-formatPriceRange(bottomPrice, topPrice) =>
-    na(bottomPrice) or na(topPrice) ? "없음" : str.tostring(bottomPrice, format.mintick) + " ~ " + str.tostring(topPrice, format.mintick)
-
-reportBiasText(bias) =>
-    bias > 0 ? "롱 우세" : bias < 0 ? "숏 우세" : "중립"
-
-reportBiasColor(bias, bullishColor, bearishColor, neutralColor) =>
-    bias > 0 ? bullishColor : bias < 0 ? bearishColor : neutralColor
-
-reportStageName(stage, strongStage) =>
-    if stage >= 4
-        "4단계 - 스윕 확인"
-    else if stage == 3
-        "3단계 - 진입 후보"
-    else if stage == 2
-        strongStage ? "2단계 - 감시 강화" : "2단계 - 배경 형성"
-    else if stage == 1
-        "1단계 - 다이버전스"
-    else if stage == 0
-        "0단계 - 비정상 캔들"
-    else
-        "대기"
-
-reportStateColor(isLongSide, state, longColor, shortColor, neutralColor) =>
-    state > 0 ? (isLongSide ? longColor : shortColor) : state < 0 ? (isLongSide ? shortColor : longColor) : neutralColor
-
-// =========================
-// Moving Average
-// =========================
-ma = ta.sma(src, maLength)
-maTrendUp = ma > ma[1]
-maTrendDown = ma < ma[1]
-var color maColor = maUpColor
-maColor := maTrendUp ? maUpColor : maTrendDown ? maDownColor : (na(maColor[1]) ? maUpColor : maColor[1])
-plot(ma, title="이동평균선", color=maColor, linewidth=lineWidth, display=display.all - display.price_scale)
+reportStatusColor(isOn, activeColor, inactiveColor) =>
+    isOn ? activeColor : inactiveColor
 
 var box[] referenceBoxes = array.new_box()
 var box[] divergenceBoxes = array.new_box()
@@ -448,14 +401,11 @@ bodySize = math.abs(close - open)
 isBullPressureBar = close > open or lowerWick > bodySize
 isBearPressureBar = close < open or upperWick > bodySize
 
-maBullFilter = not useMAFilterForVolume or close >= ma
-maBearFilter = not useMAFilterForVolume or high >= ma
-
 crsiBullFilter = not useCRSIFilterForVolume or isOversold
 crsiBearFilter = not useCRSIFilterForVolume or isOverbought
 
-bullSmartVolumeSignal = enableSmartVolume and abnormalBuyVolume and isBullPressureBar and maBullFilter and crsiBullFilter
-bearSmartVolumeSignal = enableSmartVolume and abnormalSellVolume and isBearPressureBar and maBearFilter and crsiBearFilter
+bullSmartVolumeSignal = enableSmartVolume and abnormalBuyVolume and isBullPressureBar and crsiBullFilter
+bearSmartVolumeSignal = enableSmartVolume and abnormalSellVolume and isBearPressureBar and crsiBearFilter
 
 // =========================
 // RSI Divergence Calculation
@@ -764,9 +714,6 @@ bearBgAbnormalVolumeBonusReady = recentBearBgSignal and recentBearAbnormalOrderV
 bullishVolumeConfirm = bullSmartVolumeSignal or vpBullPressureSignal or (lsFilterAbnormalBuyOrderVolume and buyVolume > sellVolume)
 bearishVolumeConfirm = bearSmartVolumeSignal or vpBearPressureSignal or (lsFilterAbnormalSellOrderVolume and sellVolume > buyVolume)
 
-bullishTrendAligned = close >= ma and ma >= ma[1]
-bearishTrendAligned = close <= ma and ma <= ma[1]
-
 bullSetupScore = 0
 bullSetupScore += recentBullishAbnormalCandle ? 2 : 0
 bullSetupScore += recentBullDivSignal ? 2 : 0
@@ -787,8 +734,6 @@ bearSetupScore += bearBgAbnormalVolumeBonusReady ? lsBgAbnormalVolumeBonusScore 
 
 bullConfirmScore = 0
 bullConfirmScore += bullishVolumeConfirm ? 2 : 0
-bullConfirmScore += close >= ma ? 1 : 0
-bullConfirmScore += ma >= ma[1] ? 1 : 0
 bullConfirmScore += close > open ? 1 : 0
 bullConfirmScore += close > close[1] ? 1 : 0
 bullConfirmScore += crsi > crsi[1] ? 1 : 0
@@ -796,8 +741,6 @@ bullConfirmScore += helperMfi > helperMfi[1] ? 1 : 0
 
 bearConfirmScore = 0
 bearConfirmScore += bearishVolumeConfirm ? 2 : 0
-bearConfirmScore += close <= ma ? 1 : 0
-bearConfirmScore += ma <= ma[1] ? 1 : 0
 bearConfirmScore += close < open ? 1 : 0
 bearConfirmScore += close < close[1] ? 1 : 0
 bearConfirmScore += crsi < crsi[1] ? 1 : 0
@@ -808,8 +751,8 @@ bearTotalScore = bearSetupScore + bearConfirmScore
 
 bullSetupReady = bullSetupScore >= 3
 bearSetupReady = bearSetupScore >= 3
-bullConfirmReady = bullConfirmScore >= 4 and (not lsRequireTrendAlignment or bullishTrendAligned) and (not lsRequireVolumeConfirm or bullishVolumeConfirm)
-bearConfirmReady = bearConfirmScore >= 4 and (not lsRequireTrendAlignment or bearishTrendAligned) and (not lsRequireVolumeConfirm or bearishVolumeConfirm)
+bullConfirmReady = bullConfirmScore >= 4 and (not lsRequireVolumeConfirm or bullishVolumeConfirm)
+bearConfirmReady = bearConfirmScore >= 4 and (not lsRequireVolumeConfirm or bearishVolumeConfirm)
 
 // Block L/S candidates unless abnormal order flow has appeared near the setup window.
 bullEntryCandidate = bullSetupReady and bullConfirmReady and totalVolumeEnough and (not lsRequireAbnormalOrderVolume or bullAbnormalOrderVolumeReady) and bullTotalScore >= lsMinScore and bullTotalScore > bearTotalScore
@@ -985,158 +928,57 @@ alertcondition(confirmedBearSweepFollowThrough, title="4단계 숏 확인 (상�
 // =========================
 // Report Table
 // =========================
-recentBullLongSignal = recentSignal(confirmedStrongLongSignal, lsCooldownBars)
-recentBearShortSignal = recentSignal(confirmedStrongShortSignal, lsCooldownBars)
-recentBullSweepConfirm = recentSignal(confirmedBullSweepFollowThrough, lsCooldownBars)
-recentBearSweepConfirm = recentSignal(confirmedBearSweepFollowThrough, lsCooldownBars)
+bullReportStartOn = recentSignal(oversoldEnter, reportStatusLookbackBars)
+bearReportStartOn = recentSignal(overboughtEnter, reportStatusLookbackBars)
+bullReportHoldOn = recentSignal(isBullishAbnormalCandle, reportStatusLookbackBars)
+bearReportHoldOn = recentSignal(isBearishAbnormalCandle, reportStatusLookbackBars)
+bullReportHintOn = recentSignal(regularBullDiv, reportStatusLookbackBars)
+bearReportHintOn = recentSignal(regularBearDiv, reportStatusLookbackBars)
+bullReportWatchOn = recentSignal(bullBgOn, reportStatusLookbackBars)
+bearReportWatchOn = recentSignal(bearBgOn, reportStatusLookbackBars)
+bullReportWatchStrongOn = recentSignal(bullBgStrong, reportStatusLookbackBars)
+bearReportWatchStrongOn = recentSignal(bearBgStrong, reportStatusLookbackBars)
+bullReportCandidateOn = recentSignal(strongLongSignal, reportStatusLookbackBars)
+bearReportCandidateOn = recentSignal(strongShortSignal, reportStatusLookbackBars)
+bullReportConfirmOn = recentSignal(confirmedBullSweepFollowThrough, reportStatusLookbackBars)
+bearReportConfirmOn = recentSignal(confirmedBearSweepFollowThrough, reportStatusLookbackBars)
 
-bullReportStage = recentBullSweepConfirm ? 4 : recentBullLongSignal ? 3 : (bullBgOn or recentBullBgSignal) ? 2 : recentBullDivSignal ? 1 : recentBullishAbnormalCandle ? 0 : -1
-bearReportStage = recentBearSweepConfirm ? 4 : recentBearShortSignal ? 3 : (bearBgOn or recentBearBgSignal) ? 2 : recentBearDivSignal ? 1 : recentBearishAbnormalCandle ? 0 : -1
-
-reportBias = bullReportStage > bearReportStage ? 1 : bearReportStage > bullReportStage ? -1 : bullTotalScore > bearTotalScore ? 1 : bearTotalScore > bullTotalScore ? -1 : 0
-
-latestBullAbnormalTop = ta.valuewhen(isBullishAbnormalCandle, candleBodyLow, 0)
-latestBullAbnormalBottom = ta.valuewhen(isBullishAbnormalCandle, low, 0)
-latestBearAbnormalTop = ta.valuewhen(isBearishAbnormalCandle, high, 0)
-latestBearAbnormalBottom = ta.valuewhen(isBearishAbnormalCandle, candleBodyHigh, 0)
-
-latestBullDivTop = ta.valuewhen(regularBullDiv, open[lbR], 0)
-latestBullDivBottom = ta.valuewhen(regularBullDiv, low[lbR], 0)
-latestBearDivTop = ta.valuewhen(regularBearDiv, high[lbR], 0)
-latestBearDivBottom = ta.valuewhen(regularBearDiv, open[lbR], 0)
-
-latestBullSignalTop = ta.valuewhen(confirmedStrongLongSignal, close, 0)
-latestBullSignalBottom = ta.valuewhen(confirmedStrongLongSignal, low, 0)
-latestBearSignalTop = ta.valuewhen(confirmedStrongShortSignal, high, 0)
-latestBearSignalBottom = ta.valuewhen(confirmedStrongShortSignal, close, 0)
-
-latestBullSweepTop = ta.valuewhen(confirmedBullSweepFollowThrough, close, 0)
-latestBullSweepBottom = ta.valuewhen(confirmedBullSweepFollowThrough, low, 0)
-latestBearSweepTop = ta.valuewhen(confirmedBearSweepFollowThrough, high, 0)
-latestBearSweepBottom = ta.valuewhen(confirmedBearSweepFollowThrough, close, 0)
-
-reportMAFast = ta.sma(close, reportMAFastLength)
-reportMAMid = ta.sma(close, reportMAMidLength)
-reportMASlow = ta.sma(close, reportMASlowLength)
-reportMABase = ta.sma(close, reportMABaseLength)
-hasMAValues = not na(reportMAFast) and not na(reportMAMid) and not na(reportMASlow) and not na(reportMABase)
-bullMAOrderScore = (hasMAValues and reportMAFast > reportMAMid ? 1 : 0) + (hasMAValues and reportMAMid > reportMASlow ? 1 : 0) + (hasMAValues and reportMASlow > reportMABase ? 1 : 0)
-bearMAOrderScore = (hasMAValues and reportMAFast < reportMAMid ? 1 : 0) + (hasMAValues and reportMAMid < reportMASlow ? 1 : 0) + (hasMAValues and reportMASlow < reportMABase ? 1 : 0)
-bullMAInterpretText = not hasMAValues ? "계산중" : bullMAOrderScore == 3 ? "정배열" : bullMAOrderScore == 2 ? "약한 정배열" : bullMAOrderScore == 1 ? "약한 역배열" : "역배열"
-bearMAInterpretText = not hasMAValues ? "계산중" : bearMAOrderScore == 3 ? "역배열" : bearMAOrderScore == 2 ? "약한 역배열" : bearMAOrderScore == 1 ? "약한 정배열" : "정배열"
-
-float bullReportTop = na
-float bullReportBottom = na
-float bearReportTop = na
-float bearReportBottom = na
-bool bullReportOrderReady = bullAbnormalOrderVolumeReady
-bool bearReportOrderReady = bearAbnormalOrderVolumeReady
-bool bullReportVolumeReady = bullishVolumeConfirm
-bool bearReportVolumeReady = bearishVolumeConfirm
-string bullStageText = "대기"
-string bearStageText = "대기"
-string bullKeyText = "관망"
-string bearKeyText = "관망"
-string bullOrderText = "아직 없음"
-string bearOrderText = "아직 없음"
-string bullInvalidationText = "없음"
-string bearInvalidationText = "없음"
-string bullActionText = "관망"
-string bearActionText = "관망"
-
-if bullReportStage >= 0
-    bullReportTop := bullReportStage >= 4 ? latestBullSweepTop : bullReportStage >= 3 ? latestBullSignalTop : bullReportStage >= 1 and recentBullDivSignal ? latestBullDivTop : latestBullAbnormalTop
-    bullReportBottom := bullReportStage >= 4 ? latestBullSweepBottom : bullReportStage >= 3 ? latestBullSignalBottom : bullReportStage >= 1 and recentBullDivSignal ? latestBullDivBottom : latestBullAbnormalBottom
-    bullStageText := reportStageName(bullReportStage, bullBgStrong)
-    bullKeyText := bullReportStage >= 4 ? "하단 스윕 확인 완료" : bullReportStage >= 3 ? (bullBgStrong ? "진입 후보 + 강한 매수 배경" : "진입 후보 + 매수 확인") : bullReportStage == 2 ? (bullBgStrong ? "강한 매수 배경" : "매수 배경 형성") : bullReportStage == 1 ? "강세 다이버전스 확인" : "비정상 과매도 캔들"
-    bullOrderText := bullReportOrderReady ? (bullReportVolumeReady ? "비정상 매수 + 거래량 확인" : "비정상 매수 확인") : bullReportVolumeReady ? "거래량 확인" : "아직 없음"
-    bullInvalidationText := na(bullReportBottom) ? "없음" : bullReportStage >= 4 ? str.tostring(bullReportBottom, format.mintick) + " 이탈 후 복구 확인" : close < bullReportBottom ? str.tostring(bullReportBottom, format.mintick) + " 이탈 중, 흡수 확인" : str.tostring(bullReportBottom, format.mintick) + " 이탈 시 1차 경고"
-    bullActionText := bullReportStage >= 4 ? "박스 재테스트 지지 확인" : bullReportStage >= 3 ? "기준봉 유지 시 눌림 대응" : bullReportStage == 2 ? (bullReportOrderReady ? "종가 회복 확인" : "비정상 매수 주문량 대기") : bullReportStage == 1 ? "ATR 배경 형성 대기" : "다이버전스 확인 대기"
-
-if bearReportStage >= 0
-    bearReportTop := bearReportStage >= 4 ? latestBearSweepTop : bearReportStage >= 3 ? latestBearSignalTop : bearReportStage >= 1 and recentBearDivSignal ? latestBearDivTop : latestBearAbnormalTop
-    bearReportBottom := bearReportStage >= 4 ? latestBearSweepBottom : bearReportStage >= 3 ? latestBearSignalBottom : bearReportStage >= 1 and recentBearDivSignal ? latestBearDivBottom : latestBearAbnormalBottom
-    bearStageText := reportStageName(bearReportStage, bearBgStrong)
-    bearKeyText := bearReportStage >= 4 ? "상단 스윕 확인 완료" : bearReportStage >= 3 ? (bearBgStrong ? "진입 후보 + 강한 매도 배경" : "진입 후보 + 매도 확인") : bearReportStage == 2 ? (bearBgStrong ? "강한 매도 배경" : "매도 배경 형성") : bearReportStage == 1 ? "약세 다이버전스 확인" : "비정상 과매수 캔들"
-    bearOrderText := bearReportOrderReady ? (bearReportVolumeReady ? "비정상 매도 + 거래량 확인" : "비정상 매도 확인") : bearReportVolumeReady ? "거래량 확인" : "아직 없음"
-    bearInvalidationText := na(bearReportTop) ? "없음" : bearReportStage >= 4 ? str.tostring(bearReportTop, format.mintick) + " 돌파 후 되밀림 확인" : close > bearReportTop ? str.tostring(bearReportTop, format.mintick) + " 돌파 중, 흡수 확인" : str.tostring(bearReportTop, format.mintick) + " 돌파 시 1차 경고"
-    bearActionText := bearReportStage >= 4 ? "박스 재테스트 저항 확인" : bearReportStage >= 3 ? "기준봉 유지 시 반락 대응" : bearReportStage == 2 ? (bearReportOrderReady ? "종가 약세 유지 확인" : "비정상 매도 주문량 대기") : bearReportStage == 1 ? "ATR 배경 형성 대기" : "다이버전스 확인 대기"
-
-bullMAState = not hasMAValues ? 0 : bullMAOrderScore >= 2 ? 1 : -1
-bearMAState = not hasMAValues ? 0 : bearMAOrderScore >= 2 ? 1 : -1
-bullStageState = bullReportStage >= 0 ? 1 : 0
-bearStageState = bearReportStage >= 0 ? 1 : 0
-bullScoreState = bullTotalScore > bearTotalScore ? 1 : bullTotalScore < bearTotalScore ? -1 : 0
-bearScoreState = bearTotalScore > bullTotalScore ? 1 : bearTotalScore < bullTotalScore ? -1 : 0
-bullKeyState = bullReportStage >= 0 ? 1 : 0
-bearKeyState = bearReportStage >= 0 ? 1 : 0
-bullOrderState = (bullReportOrderReady or bullReportVolumeReady) ? 1 : 0
-bearOrderState = (bearReportOrderReady or bearReportVolumeReady) ? 1 : 0
-bullPriceRangeState = not na(bullReportTop) ? 1 : 0
-bearPriceRangeState = not na(bearReportTop) ? 1 : 0
-bullInvalidationState = na(bullReportBottom) ? 0 : close < bullReportBottom ? -1 : 1
-bearInvalidationState = na(bearReportTop) ? 0 : close > bearReportTop ? -1 : 1
-bullActionState = bullReportStage >= 0 ? 1 : 0
-bearActionState = bearReportStage >= 0 ? 1 : 0
-bullMAColor = reportStateColor(true, bullMAState, reportBullColor, reportBearColor, reportNeutralColor)
-bearMAColor = reportStateColor(false, bearMAState, reportBullColor, reportBearColor, reportNeutralColor)
-bullStageColor = reportStateColor(true, bullStageState, reportBullColor, reportBearColor, reportNeutralColor)
-bearStageColor = reportStateColor(false, bearStageState, reportBullColor, reportBearColor, reportNeutralColor)
-bullScoreColor = reportStateColor(true, bullScoreState, reportBullColor, reportBearColor, color.white)
-bearScoreColor = reportStateColor(false, bearScoreState, reportBullColor, reportBearColor, color.white)
-bullKeyColor = reportStateColor(true, bullKeyState, reportBullColor, reportBearColor, reportNeutralColor)
-bearKeyColor = reportStateColor(false, bearKeyState, reportBullColor, reportBearColor, reportNeutralColor)
-bullOrderColor = reportStateColor(true, bullOrderState, reportBullColor, reportBearColor, reportNeutralColor)
-bearOrderColor = reportStateColor(false, bearOrderState, reportBullColor, reportBearColor, reportNeutralColor)
-bullPriceRangeColor = reportStateColor(true, bullPriceRangeState, reportBullColor, reportBearColor, reportNeutralColor)
-bearPriceRangeColor = reportStateColor(false, bearPriceRangeState, reportBullColor, reportBearColor, reportNeutralColor)
-bullInvalidationColor = reportStateColor(true, bullInvalidationState, reportBullColor, reportBearColor, reportNeutralColor)
-bearInvalidationColor = reportStateColor(false, bearInvalidationState, reportBullColor, reportBearColor, reportNeutralColor)
-bullActionColor = reportStateColor(true, bullActionState, reportBullColor, reportBearColor, reportNeutralColor)
-bearActionColor = reportStateColor(false, bearActionState, reportBullColor, reportBearColor, reportNeutralColor)
-bullScoreText = formatScoreSummary(bullSetupScore, bullConfirmScore)
-bearScoreText = formatScoreSummary(bearSetupScore, bearConfirmScore)
-bullPriceRangeText = formatPriceRange(bullReportBottom, bullReportTop)
-bearPriceRangeText = formatPriceRange(bearReportBottom, bearReportTop)
-
-var table tradeReportTable = table.new(tablePosition(reportPositionInput), 3, 9, border_width=1)
+var table tradeReportTable = table.new(tablePosition(reportPositionInput), 3, 8, border_width=1)
 reportHeaderBgColor = color.new(reportHeaderColor, reportBackgroundTransparency)
 reportLabelBgColorValue = color.new(reportLabelBgColor, math.max(reportBackgroundTransparency - 28, 0))
 reportFieldBgColorValue = color.new(reportFieldBgColor, reportBackgroundTransparency)
 reportBullHeaderBgColor = color.new(reportBullColor, math.max(reportBackgroundTransparency - 20, 0))
 reportBearHeaderBgColor = color.new(reportBearColor, math.max(reportBackgroundTransparency - 20, 0))
 reportTextSize = tableTextSize(reportTextSizeInput)
+reportHeaderText = "최근 " + str.tostring(reportStatusLookbackBars) + "봉"
 if showTradeReport
     if barstate.islast
-        table.cell(tradeReportTable, 0, 0, "리포트", text_color=color.white, bgcolor=reportHeaderBgColor, text_size=reportTextSize)
+        table.cell(tradeReportTable, 0, 0, reportHeaderText, text_color=color.white, bgcolor=reportHeaderBgColor, text_size=reportTextSize)
         table.cell(tradeReportTable, 1, 0, "롱", text_color=color.white, bgcolor=reportBullHeaderBgColor, text_size=reportTextSize)
         table.cell(tradeReportTable, 2, 0, "숏", text_color=color.white, bgcolor=reportBearHeaderBgColor, text_size=reportTextSize)
-        table.cell(tradeReportTable, 0, 1, "이평선", text_color=color.white, bgcolor=reportLabelBgColorValue, text_size=reportTextSize)
-        table.cell(tradeReportTable, 1, 1, bullMAInterpretText, text_color=bullMAColor, bgcolor=reportFieldBgColorValue, text_size=reportTextSize)
-        table.cell(tradeReportTable, 2, 1, bearMAInterpretText, text_color=bearMAColor, bgcolor=reportFieldBgColorValue, text_size=reportTextSize)
-        table.cell(tradeReportTable, 0, 2, "단계", text_color=color.white, bgcolor=reportLabelBgColorValue, text_size=reportTextSize)
-        table.cell(tradeReportTable, 1, 2, bullStageText, text_color=bullStageColor, bgcolor=reportFieldBgColorValue, text_size=reportTextSize)
-        table.cell(tradeReportTable, 2, 2, bearStageText, text_color=bearStageColor, bgcolor=reportFieldBgColorValue, text_size=reportTextSize)
-        table.cell(tradeReportTable, 0, 3, "점수", text_color=color.white, bgcolor=reportLabelBgColorValue, text_size=reportTextSize)
-        table.cell(tradeReportTable, 1, 3, bullScoreText, text_color=bullScoreColor, bgcolor=reportFieldBgColorValue, text_size=reportTextSize)
-        table.cell(tradeReportTable, 2, 3, bearScoreText, text_color=bearScoreColor, bgcolor=reportFieldBgColorValue, text_size=reportTextSize)
-        table.cell(tradeReportTable, 0, 4, "핵심", text_color=color.white, bgcolor=reportLabelBgColorValue, text_size=reportTextSize)
-        table.cell(tradeReportTable, 1, 4, bullKeyText, text_color=bullKeyColor, bgcolor=reportFieldBgColorValue, text_size=reportTextSize)
-        table.cell(tradeReportTable, 2, 4, bearKeyText, text_color=bearKeyColor, bgcolor=reportFieldBgColorValue, text_size=reportTextSize)
-        table.cell(tradeReportTable, 0, 5, "주문", text_color=color.white, bgcolor=reportLabelBgColorValue, text_size=reportTextSize)
-        table.cell(tradeReportTable, 1, 5, bullOrderText, text_color=bullOrderColor, bgcolor=reportFieldBgColorValue, text_size=reportTextSize)
-        table.cell(tradeReportTable, 2, 5, bearOrderText, text_color=bearOrderColor, bgcolor=reportFieldBgColorValue, text_size=reportTextSize)
-        table.cell(tradeReportTable, 0, 6, "기준", text_color=color.white, bgcolor=reportLabelBgColorValue, text_size=reportTextSize)
-        table.cell(tradeReportTable, 1, 6, bullPriceRangeText, text_color=bullPriceRangeColor, bgcolor=reportFieldBgColorValue, text_size=reportTextSize)
-        table.cell(tradeReportTable, 2, 6, bearPriceRangeText, text_color=bearPriceRangeColor, bgcolor=reportFieldBgColorValue, text_size=reportTextSize)
-        table.cell(tradeReportTable, 0, 7, "무효화", text_color=color.white, bgcolor=reportLabelBgColorValue, text_size=reportTextSize)
-        table.cell(tradeReportTable, 1, 7, bullInvalidationText, text_color=bullInvalidationColor, bgcolor=reportFieldBgColorValue, text_size=reportTextSize)
-        table.cell(tradeReportTable, 2, 7, bearInvalidationText, text_color=bearInvalidationColor, bgcolor=reportFieldBgColorValue, text_size=reportTextSize)
-        table.cell(tradeReportTable, 0, 8, "행동", text_color=color.white, bgcolor=reportLabelBgColorValue, text_size=reportTextSize)
-        table.cell(tradeReportTable, 1, 8, bullActionText, text_color=bullActionColor, bgcolor=reportFieldBgColorValue, text_size=reportTextSize)
-        table.cell(tradeReportTable, 2, 8, bearActionText, text_color=bearActionColor, bgcolor=reportFieldBgColorValue, text_size=reportTextSize)
+        table.cell(tradeReportTable, 0, 1, "비정상 시작", text_color=color.white, bgcolor=reportLabelBgColorValue, text_size=reportTextSize)
+        table.cell(tradeReportTable, 1, 1, reportStatusText(bullReportStartOn), text_color=reportStatusColor(bullReportStartOn, reportBullColor, reportNeutralColor), bgcolor=reportFieldBgColorValue, text_size=reportTextSize)
+        table.cell(tradeReportTable, 2, 1, reportStatusText(bearReportStartOn), text_color=reportStatusColor(bearReportStartOn, reportBearColor, reportNeutralColor), bgcolor=reportFieldBgColorValue, text_size=reportTextSize)
+        table.cell(tradeReportTable, 0, 2, "비정상 유지", text_color=color.white, bgcolor=reportLabelBgColorValue, text_size=reportTextSize)
+        table.cell(tradeReportTable, 1, 2, reportStatusText(bullReportHoldOn), text_color=reportStatusColor(bullReportHoldOn, reportBullColor, reportNeutralColor), bgcolor=reportFieldBgColorValue, text_size=reportTextSize)
+        table.cell(tradeReportTable, 2, 2, reportStatusText(bearReportHoldOn), text_color=reportStatusColor(bearReportHoldOn, reportBearColor, reportNeutralColor), bgcolor=reportFieldBgColorValue, text_size=reportTextSize)
+        table.cell(tradeReportTable, 0, 3, "다이버전스", text_color=color.white, bgcolor=reportLabelBgColorValue, text_size=reportTextSize)
+        table.cell(tradeReportTable, 1, 3, reportStatusText(bullReportHintOn), text_color=reportStatusColor(bullReportHintOn, reportBullColor, reportNeutralColor), bgcolor=reportFieldBgColorValue, text_size=reportTextSize)
+        table.cell(tradeReportTable, 2, 3, reportStatusText(bearReportHintOn), text_color=reportStatusColor(bearReportHintOn, reportBearColor, reportNeutralColor), bgcolor=reportFieldBgColorValue, text_size=reportTextSize)
+        table.cell(tradeReportTable, 0, 4, "ATR 배경", text_color=color.white, bgcolor=reportLabelBgColorValue, text_size=reportTextSize)
+        table.cell(tradeReportTable, 1, 4, reportStatusText(bullReportWatchOn), text_color=reportStatusColor(bullReportWatchOn, reportBullColor, reportNeutralColor), bgcolor=reportFieldBgColorValue, text_size=reportTextSize)
+        table.cell(tradeReportTable, 2, 4, reportStatusText(bearReportWatchOn), text_color=reportStatusColor(bearReportWatchOn, reportBearColor, reportNeutralColor), bgcolor=reportFieldBgColorValue, text_size=reportTextSize)
+        table.cell(tradeReportTable, 0, 5, "ATR 강화", text_color=color.white, bgcolor=reportLabelBgColorValue, text_size=reportTextSize)
+        table.cell(tradeReportTable, 1, 5, reportStatusText(bullReportWatchStrongOn), text_color=reportStatusColor(bullReportWatchStrongOn, reportBullColor, reportNeutralColor), bgcolor=reportFieldBgColorValue, text_size=reportTextSize)
+        table.cell(tradeReportTable, 2, 5, reportStatusText(bearReportWatchStrongOn), text_color=reportStatusColor(bearReportWatchStrongOn, reportBearColor, reportNeutralColor), bgcolor=reportFieldBgColorValue, text_size=reportTextSize)
+        table.cell(tradeReportTable, 0, 6, "오더 블럭", text_color=color.white, bgcolor=reportLabelBgColorValue, text_size=reportTextSize)
+        table.cell(tradeReportTable, 1, 6, reportStatusText(bullReportCandidateOn), text_color=reportStatusColor(bullReportCandidateOn, reportBullColor, reportNeutralColor), bgcolor=reportFieldBgColorValue, text_size=reportTextSize)
+        table.cell(tradeReportTable, 2, 6, reportStatusText(bearReportCandidateOn), text_color=reportStatusColor(bearReportCandidateOn, reportBearColor, reportNeutralColor), bgcolor=reportFieldBgColorValue, text_size=reportTextSize)
+        table.cell(tradeReportTable, 0, 7, "스윕 확인", text_color=color.white, bgcolor=reportLabelBgColorValue, text_size=reportTextSize)
+        table.cell(tradeReportTable, 1, 7, reportStatusText(bullReportConfirmOn), text_color=reportStatusColor(bullReportConfirmOn, reportBullColor, reportNeutralColor), bgcolor=reportFieldBgColorValue, text_size=reportTextSize)
+        table.cell(tradeReportTable, 2, 7, reportStatusText(bearReportConfirmOn), text_color=reportStatusColor(bearReportConfirmOn, reportBearColor, reportNeutralColor), bgcolor=reportFieldBgColorValue, text_size=reportTextSize)
 else
-    table.clear(tradeReportTable, 0, 0, 2, 8)
+    table.clear(tradeReportTable, 0, 0, 2, 7)
 
 // =========================
 // Optional Plots
