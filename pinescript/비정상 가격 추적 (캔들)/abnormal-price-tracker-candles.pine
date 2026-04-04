@@ -1073,13 +1073,13 @@ reportFieldBgColorValue = color.new(reportFieldBgColor, reportBackgroundTranspar
 reportBullHeaderBgColor = color.new(reportBullColor, math.max(reportBackgroundTransparency - 20, 0))
 reportBearHeaderBgColor = color.new(reportBearColor, math.max(reportBackgroundTransparency - 20, 0))
 reportTextSize = tableTextSize(reportTextSizeInput)
-reportHeaderText = "신호 추적"
+reportHeaderText = "시그널"
 
 if showTradeReport
     if barstate.islast
         table.cell(tradeReportTable, 0, 0, reportHeaderText, text_color=color.white, bgcolor=reportHeaderBgColor, text_size=reportTextSize)
-        table.cell(tradeReportTable, 1, 0, "롱 상태", text_color=color.white, bgcolor=reportBullHeaderBgColor, text_size=reportTextSize)
-        table.cell(tradeReportTable, 2, 0, "숏 상태", text_color=color.white, bgcolor=reportBearHeaderBgColor, text_size=reportTextSize)
+        table.cell(tradeReportTable, 1, 0, "롱 변등 감시", text_color=color.white, bgcolor=reportBullHeaderBgColor, text_size=reportTextSize)
+        table.cell(tradeReportTable, 2, 0, "숏 반등 감시", text_color=color.white, bgcolor=reportBearHeaderBgColor, text_size=reportTextSize)
         table.cell(tradeReportTable, 0, 1, "비정상 시작", text_color=color.white, bgcolor=reportLabelBgColorValue, text_size=reportTextSize)
         table.cell(tradeReportTable, 1, 1, reportStatusText(bullReportStartCount), text_color=reportStatusColor(bullReportStartCount, reportBullColor, reportNeutralColor), bgcolor=reportFieldBgColorValue, text_size=reportTextSize)
         table.cell(tradeReportTable, 2, 1, reportStatusText(bearReportStartCount), text_color=reportStatusColor(bearReportStartCount, reportBearColor, reportNeutralColor), bgcolor=reportFieldBgColorValue, text_size=reportTextSize)
