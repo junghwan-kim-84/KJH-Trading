@@ -46,4 +46,4 @@ sellColor = abnormal ? abnormalSellColor : normalSellColor
 // =========================
 plot(volume, style=plot.style_columns, color=sellColor, title="Sell Volume")
 plot(buyVolume, style=plot.style_columns, color=buyColor, title="Buy Volume")
-plot(showAverageLines ? avgTotalVolume : na, title="Total Volume SMA", color=totalAvgColor, linewidth=2)
+plot(showAverageLines ? avgTotalVolume : na, title="Total Volume SMA", color=totalAvgColor, linewidth=1)

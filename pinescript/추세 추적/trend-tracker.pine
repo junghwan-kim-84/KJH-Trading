@@ -31,22 +31,16 @@ S     = input.color(color.rgb(233, 92, 146), title="VWAP Lines", group="Style", 
 R     = input.color(color.rgb(83, 198, 220), title="", group="Style", inline="VWAP", tooltip=t8)
 xx    = input.int(2, minval=1, title="", group="Style", inline="VWAP", tooltip=t9)
 
-// Ichimoku
-ichimokuGroup       = "Ichimoku"
-showIchimoku        = input.bool(true, "Show Ichimoku", group=ichimokuGroup)
-showBaseLine        = input.bool(false, "Show Base Line", group=ichimokuGroup)
-basePeriods         = input.int(26, minval=1, title="Base Line Length", group=ichimokuGroup)
-laggingSpan2Periods = input.int(52, minval=1, title="Leading Span B Length", group=ichimokuGroup)
-displacement        = input.int(26, minval=1, title="Displacement", group=ichimokuGroup)
-ichBaseBullColor    = input.color(color.rgb(46, 125, 50), "Base Line Colors", group=ichimokuGroup, inline="ich1")
-ichBaseNeutralColor = input.color(color.rgb(158, 158, 158), "", group=ichimokuGroup, inline="ich1")
-ichBaseBearColor    = input.color(color.rgb(198, 40, 40), "", group=ichimokuGroup, inline="ich1")
-ichBaseWidth        = input.int(2, minval=1, maxval=5, title="", group=ichimokuGroup, inline="ich2")
-kumoBullColor       = input.color(color.new(color.gray, 80), "Bull Cloud", group=ichimokuGroup, inline="ich2")
-kumoBearColor       = input.color(color.new(color.gray, 80), "", group=ichimokuGroup, inline="ich2")
+// Ribbon
+ribbonGroup       = "Ribbon"
+showRibbon        = input.bool(true, "Show Ribbon", group=ribbonGroup)
+ribbonSource      = input.source(close, "Source", group=ribbonGroup)
+ribbonExponential = input.bool(true, "Exponential", group=ribbonGroup)
+showRibbon100     = input.bool(true, "MA 100", group=ribbonGroup)
+showRibbon200     = input.bool(true, "MA 200", group=ribbonGroup)
 
-// Moving Average (calculation only)
-maGroup  = "Moving Average"
+// Signal MA (calculation only)
+maGroup  = "Signal Moving Average"
 maLength = input.int(9, "MA Length", minval=1, group=maGroup)
 maSource = input.source(close, "MA Source", group=maGroup)
 
@@ -103,18 +97,31 @@ type dataPoints
 var vwap = dataPoints.new(array.new<chart.point>())
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~}
 
-// ~~ Ichimoku {
-donchian(len) => math.avg(ta.lowest(len), ta.highest(len))
-conversionLine = donchian(9)
-baseLine = donchian(basePeriods)
-leadLine1 = math.avg(conversionLine, baseLine)
-leadLine2 = donchian(laggingSpan2Periods)
-baseLineColor = close > baseLine and baseLine > vap ? ichBaseBullColor : close < baseLine and baseLine < vap ? ichBaseBearColor : ichBaseNeutralColor
+// ~~ Ribbon {
+ribbonMa(length) =>
+    ribbonExponential ? ta.ema(ribbonSource, length) : ta.sma(ribbonSource, length)
 
-plot(showIchimoku and showBaseLine ? baseLine : na, color=baseLineColor, linewidth=ichBaseWidth, title="Ichimoku Base Line")
-p1 = plot(showIchimoku ? leadLine1 : na, offset=displacement - 1, color=color.new(color.gray, 100), title="Leading Span A")
-p2 = plot(showIchimoku ? leadLine2 : na, offset=displacement - 1, color=color.new(color.gray, 100), title="Leading Span B")
-fill(p1, p2, title="Kumo Cloud Fill", color=leadLine1 > leadLine2 ? kumoBullColor : kumoBearColor)
+ribbon20  = ribbonMa(20)
+ribbon25  = ribbonMa(25)
+ribbon30  = ribbonMa(30)
+ribbon35  = ribbonMa(35)
+ribbon40  = ribbonMa(40)
+ribbon45  = ribbonMa(45)
+ribbon50  = ribbonMa(50)
+ribbon100 = showRibbon and showRibbon100 ? ribbonMa(100) : na
+ribbon200 = showRibbon and showRibbon200 ? ribbonMa(200) : na
+
+plot(showRibbon ? ribbon20 : na, title='MA 20', color=#FFFF0080)
+plot(showRibbon ? ribbon25 : na, title='MA 25', color=#FFDF0080)
+plot(showRibbon ? ribbon30 : na, title='MA 30', color=#FFBF0080)
+plot(showRibbon ? ribbon35 : na, title='MA 35', color=#FF9F0080)
+plot(showRibbon ? ribbon40 : na, title='MA 40', color=#FF7F0080)
+plot(showRibbon ? ribbon45 : na, title='MA 45', color=#FF5F0080)
+plot(showRibbon ? ribbon50 : na, title='MA 50', color=#FF3F0080)
+
+p100 = plot(ribbon100, title='MA 100', color=#FF0000FF)
+p200 = plot(ribbon200, title='MA 200', color=#800000FF)
+fill(p100, p200, color=ribbon100 > ribbon200 ? #4CAF5033 : #FF525233, title='MA Fill')
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~}
 
 // ~~ MA (calculation only) {
@@ -170,8 +177,11 @@ else
 //~~ }
 
 // ~~ Alignment Logic {
-bullAlignment = showIchimoku and not na(vap) and not na(baseLine) and not na(maValue) and maValue > baseLine and baseLine > vap
-bearAlignment = showIchimoku and not na(vap) and not na(baseLine) and not na(maValue) and maValue < baseLine and baseLine < vap
+ribbonBullStack = showRibbon and not na(ribbon20) and not na(ribbon25) and not na(ribbon30) and not na(ribbon35) and not na(ribbon40) and not na(ribbon45) and not na(ribbon50) and ribbon20 > ribbon25 and ribbon25 > ribbon30 and ribbon30 > ribbon35 and ribbon35 > ribbon40 and ribbon40 > ribbon45 and ribbon45 > ribbon50
+ribbonBearStack = showRibbon and not na(ribbon20) and not na(ribbon25) and not na(ribbon30) and not na(ribbon35) and not na(ribbon40) and not na(ribbon45) and not na(ribbon50) and ribbon20 < ribbon25 and ribbon25 < ribbon30 and ribbon30 < ribbon35 and ribbon35 < ribbon40 and ribbon40 < ribbon45 and ribbon45 < ribbon50
+
+bullAlignment = ribbonBullStack and not na(vap) and not na(maValue) and maValue > ribbon20 and ribbon50 > vap
+bearAlignment = ribbonBearStack and not na(vap) and not na(maValue) and maValue < ribbon20 and ribbon50 < vap
 
 bgcolor(showAlignmentBg ? bullAlignment ? bullAlignColor : bearAlignment ? bearAlignColor : na : na, title="Alignment Background")
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~}
